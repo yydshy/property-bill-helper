@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物业账单助手 · F3-2403</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ============================================================
+   Design System — single source, no overrides
+   ============================================================ */
+:root {
+  /* Ink scale */
+  --ink: #0f172a;
+  --ink-2: #334155;
+  --ink-3: #64748b;
+  --muted: #94a3b8;
+
+  /* Brand */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #dbeafe;
+  --accent-bg: #eff6ff;
+  --accent-end: #4f8dd3;
+
+  /* Semantic */
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --warning: #d97706;
+  --warning-light: #fffbeb;
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+
+  /* Surfaces */
+  --surface: #fff;
+  --surface-hover: #f8fafc;
+  --bg: #f1f5f9;
+  --bg-gradient: radial-gradient(circle at 80% 0%, rgba(37,99,235,.06), transparent 45%),
+                 linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.03);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.03);
+  --shadow-card: 0 4px 16px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.03);
+  --shadow-elevated: 0 10px 30px rgba(15,23,42,.07), 0 2px 6px rgba(15,23,42,.04);
+
+  /* Radii */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+
+  /* Type scale */
+  --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px;
+  --fs-base: 14px; --fs-md: 16px; --fs-lg: 18px;
+  --fs-xl: 22px; --fs-2xl: 28px; --fs-3xl: 36px;
+
+  /* Easing */
+  --ease: cubic-bezier(.16,1,.3,1);
+  --ease-bounce: cubic-bezier(.34,1.56,.64,1);
+
+  /* Font stack */
+  --font: -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  font-family:var(--font);
+  font-size:var(--fs-base);
+  line-height:1.6;
+  color:var(--ink-2);
+  background:var(--bg-gradient);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============================================================
+   Page shell
+   ============================================================ */
+.page { max-width:1000px; margin:0 auto; padding:0 24px 56px; }
+
+/* ============================================================
+   Header — clean, no sticky, no glass
+   ============================================================ */
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  padding:16px 0 10px;
+  margin-bottom:4px;
+}
+.header-brand { display:flex; flex-direction:column; gap:1px; }
+.header h1 {
+  font-size:22px;
+  font-weight:700;
+  color:var(--ink);
+  letter-spacing:-.015em;
+  line-height:1.2;
+}
+.header p {
+  font-size:var(--fs-sm);
+  color:var(--ink-3);
+  margin-top:2px;
+}
+.header-actions { display:flex; gap:8px; align-items:center; }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:8px 18px;
+  border-radius:var(--r-sm);
+  border:1px solid var(--border);
+  background:var(--surface);
+  cursor:pointer;
+  font-size:var(--fs-sm);
+  font-family:inherit;
+  font-weight:500;
+  color:var(--ink-2);
+  line-height:1.4;
+  transition:all .18s var(--ease);
+  user-select:none;
+  white-space:nowrap;
+  position:relative;
+  overflow:hidden;
+}
+.btn::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:var(--accent);
+  opacity:0;
+  transition:opacity .25s var(--ease);
+}
+.btn:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+.btn:active { transform:translateY(0); }
+.btn-primary {
+  background:linear-gradient(135deg,var(--accent),var(--accent-end));
+  color:#fff;
+  border-color:transparent;
+  font-weight:600;
+}
+.btn-primary:hover { background:var(--accent-hover); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.28); }
+.btn-primary:active { box-shadow:0 2px 6px rgba(37,99,235,.2); }
+.btn-danger { color:var(--danger); border-color:var(--danger-light); }
+.btn-danger:hover { background:var(--danger-light); color:var(--danger); }
+
+/* ============================================================
+   Input card
+   ============================================================ */
+.input-card {
+  background:var(--surface);
+  border-radius:var(--r-xl);
+  padding:22px 24px;
+  margin-bottom:28px;
+  box-shadow:var(--shadow-card);
+  border:none;
+  transition:box-shadow .25s var(--ease);
+}
+.input-card:focus-within { box-shadow:var(--shadow-elevated); }
+.input-card textarea {
+  width:100%;
+  min-height:80px;
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  padding:14px 16px;
+  font-size:var(--fs-sm);
+  font-family:var(--font);
+  line-height:1.7;
+  resize:vertical;
+  outline:none;
+  color:var(--ink);
+  background:var(--bg);
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
+}
+.input-card textarea::placeholder { color:var(--muted); }
+.input-card textarea:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(37,99,235,.1);
+  background:var(--surface);
+}
+.input-row { display:flex; gap:10px; margin-top:14px; align-items:center; }
+.input-hint { font-size:var(--fs-xs); color:var(--muted); }
+.input-shortcut {
+  font-size:var(--fs-2xs);
+  color:var(--muted);
+  background:var(--border-light);
+  padding:2px 7px;
+  border-radius:4px;
+  border:1px solid var(--border);
+  font-family:inherit;
+  letter-spacing:.02em;
+  margin-left:6px;
+}
+
+/* ============================================================
+   KPI grid — 6 cards, primary highlighted
+   ============================================================ */
+.kpi-grid {
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:14px;
+  margin-bottom:36px;
+}
+.kpi {
+  background:var(--surface);
+  border-radius:var(--r-lg);
+  padding:18px 20px;
+  border:none;
+  box-shadow:var(--shadow-card);
+  transition:transform .2s var(--ease), box-shadow .2s var(--ease);
+  position:relative;
+  overflow:hidden;
+}
+.kpi::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:3px;
+  background:var(--accent);
+  opacity:0;
+  transition:opacity .25s var(--ease);
+  border-radius:var(--r-lg) var(--r-lg) 0 0;
+}
+.kpi:hover {
+  transform:translateY(-3px);
+  box-shadow:var(--shadow-elevated);
+}
+.kpi:hover::before { opacity:1; }
+
+.kpi--primary {
+  background:linear-gradient(135deg,var(--accent),var(--accent-end));
+  color:#fff;
+}
+.kpi--primary::before { display:none; }
+.kpi--primary:hover {
+  box-shadow:0 8px 28px rgba(37,99,235,.3);
+}
+.kpi--primary .kpi-label { color:rgba(255,255,255,.72); }
+.kpi--primary .kpi-value { color:#fff; }
+.kpi--primary .kpi-sub { color:rgba(255,255,255,.65); }
+.kpi--primary .kpi-icon { opacity:.5; }
+
+.kpi-label {
+  font-size:var(--fs-2xs);
+  font-weight:600;
+  color:var(--ink-3);
+  margin-bottom:6px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+.kpi-value {
+  font-size:var(--fs-2xl);
+  font-weight:700;
+  color:var(--ink);
+  line-height:1.15;
+  letter-spacing:-.02em;
+  transition:all .35s var(--ease-bounce);
+}
+.kpi-sub {
+  font-size:var(--fs-xs);
+  color:var(--muted);
+  margin-top:4px;
+}
+.kpi-change {
+  font-size:var(--fs-2xs);
+  font-weight:600;
+  margin-top:3px;
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+}
+.kpi-change.up { color:var(--danger); }
+.kpi-change.down { color:var(--success); }
+.kpi-change.neutral { color:var(--muted); }
+
+/* ============================================================
+   Sections
+   ============================================================ */
+.section { margin-bottom:36px; }
+.section-hd {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-bottom:16px;
+}
+.section-title {
+  font-size:var(--fs-md);
+  font-weight:700;
+  color:var(--ink);
+  letter-spacing:-.01em;
+}
+.section-aux {
+  font-size:var(--fs-sm);
+  color:var(--muted);
+  font-weight:400;
+}
+
+/* ============================================================
+   Chart panels
+   ============================================================ */
+.chart-panel {
+  background:var(--surface);
+  border-radius:var(--r-xl);
+  padding:20px 22px;
+  border:none;
+  box-shadow:var(--shadow-card);
+  margin-bottom:16px;
+  transition:transform .22s var(--ease), box-shadow .22s var(--ease);
+}
+.chart-panel:hover {
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-elevated);
+}
+.chart-panel-title {
+  font-size:var(--fs-sm);
+  font-weight:600;
+  color:var(--ink-2);
+  margin-bottom:12px;
+}
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+.legend-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
+  margin-bottom:10px;
+  font-size:var(--fs-xs);
+  color:var(--ink-3);
+  font-weight:500;
+}
+.legend-dot {
+  width:10px; height:10px;
+  border-radius:3px;
+  display:inline-block;
+  margin-right:5px;
+  vertical-align:middle;
+}
+
+/* ============================================================
+   Table
+   ============================================================ */
+.table-panel {
+  background:var(--surface);
+  border-radius:var(--r-xl);
+  border:none;
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+}
+table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
+th {
+  background:#f8fafc;
+  text-align:left;
+  padding:11px 14px;
+  font-weight:600;
+  color:var(--ink-3);
+  font-size:var(--fs-xs);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  white-space:nowrap;
+  border-bottom:1.5px solid var(--border);
+}
+td {
+  padding:10px 14px;
+  border-bottom:1px solid var(--border-light);
+  color:var(--ink-2);
+  transition:background .15s var(--ease);
+}
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--surface-hover); }
+
+/* Highlight row animation */
+@keyframes rowFlash {
+  0% { background:var(--accent-light); }
+  100% { background:transparent; }
+}
+tr.row-new td { animation:rowFlash 1.5s var(--ease); }
+
+.badge {
+  display:inline-flex;
+  align-items:center;
+  padding:3px 10px;
+  border-radius:12px;
+  font-size:var(--fs-2xs);
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.badge-high { background:var(--danger-light); color:var(--danger); }
+.badge-mid { background:var(--warning-light); color:var(--warning); }
+.badge-low { background:var(--success-light); color:var(--success); }
+
+.delete-btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:26px; height:26px;
+  border-radius:var(--r-sm);
+  color:var(--muted);
+  cursor:pointer;
+  font-size:16px;
+  transition:all .15s var(--ease);
+}
+.delete-btn:hover { color:var(--danger); background:var(--danger-light); }
+
+.empty-msg { text-align:center; padding:56px 20px; color:var(--muted); }
+.empty-msg p { margin-bottom:4px; }
+.empty-msg p:first-child { font-size:var(--fs-base); color:var(--ink-3); font-weight:500; }
+.empty-msg p:last-child { font-size:var(--fs-sm); }
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.footer {
+  margin-top:40px;
+  padding-top:18px;
+  border-top:1px solid var(--border);
+  font-size:var(--fs-xs);
+  color:var(--muted);
+  display:flex;
+  justify-content:space-between;
+}
+
+/* Gist setup panel */
+.gist-setup { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+.gist-setup-card { position:relative; width:min(480px,92vw); background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--shadow-elevated); padding:28px 24px 24px; }
+.gist-setup-hd h3 { font-size:var(--fs-lg); font-weight:700; color:var(--ink); margin:0 0 6px; }
+.gist-setup-hd p { font-size:var(--fs-sm); color:var(--muted); margin:0; }
+.gist-setup-body { margin-top:18px; }
+.gist-setup-steps { background:var(--accent-bg); border-radius:var(--r-sm); padding:14px 16px; margin-bottom:16px; }
+.gist-setup-steps p { font-size:var(--fs-sm); color:var(--ink-2); margin:6px 0; }
+.gist-setup-steps a { color:var(--accent); }
+.gist-setup-input { display:flex; gap:8px; }
+.gist-setup-input input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--r-sm); font-size:var(--fs-sm); font-family:monospace; outline:none; transition:border-color .2s; }
+.gist-setup-input input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light); }
+.gist-setup-input .btn { flex-shrink:0; }
+.gist-setup-msg { margin-top:10px; font-size:var(--fs-xs); min-height:18px; }
+.gist-setup-msg.success { color:var(--success); }
+.gist-setup-msg.error { color:var(--danger); }
+.gist-setup-close { position:absolute; top:12px; right:14px; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; }
+.gist-setup-close:hover { color:var(--ink-2); }
+.footer #syncStatus span { vertical-align:middle; }
+.footer #syncStatus span:first-child { font-size:8px; margin-right:2px; }
+
+/* ============================================================
+   Toast — slide-up from bottom
+   ============================================================ */
+.toast {
+  position:fixed;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:var(--ink);
+  color:#fff;
+  padding:11px 24px;
+  border-radius:10px;
+  font-size:var(--fs-sm);
+  font-weight:500;
+  opacity:0;
+  pointer-events:none;
+  z-index:100;
+  box-shadow:0 8px 24px rgba(15,23,42,.18);
+  transition:opacity .28s var(--ease), transform .28s var(--ease);
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width:900px) {
+  .kpi-grid { grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:640px) {
+  .page { padding:0 14px 40px; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .kpi-value { font-size:var(--fs-xl); }
+  .chart-row { grid-template-columns:1fr; }
+  .header { flex-direction:column; gap:14px; }
+  .header-actions { align-self:flex-end; }
+  .input-card { padding:16px 18px; }
+  th, td { padding:8px 10px; font-size:var(--fs-xs); }
+}
+@media (max-width:400px) {
+  .kpi-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .kpi { padding:14px 12px; }
+  .kpi-value { font-size:18px; }
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    animation-duration:.01ms !important;
+    transition-duration:.01ms !important;
+  }
+  .kpi:hover, .chart-panel:hover, .btn:hover { transform:none; }
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">
+      <h1>天骄时代城 F3-2403</h1>
+      <p>物业账单助手 · <strong id="recordCount">0</strong> 条记录</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="exportCSV()" title="导出为 CSV 文件">&#8627; 导出 CSV</button>
+      <button class="btn" id="importBtn" title="从之前导出的 CSV 文件恢复数据">导入 CSV</button>
+      <button class="btn" onclick="clearAll()" title="恢复为初始示例数据">重置</button>
+    </div>
+  </div>
+
+  <!-- 粘贴短信 -->
+  <div class="input-card">
+    <textarea id="smsInput" placeholder="在此粘贴物业账单短信&#10;支持新旧两种格式，自动提取月份、用水量、用电量及各项费用" autofocus></textarea>
+    <div class="input-row">
+      <button class="btn btn-primary" onclick="parseSMS()">提取并添加</button>
+      <span class="input-hint">粘贴短信后点击按钮自动解析</span>
+      <span class="input-shortcut">Ctrl + Enter</span>
+    </div>
+  </div>
+
+  <!-- KPI 统计卡片 -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi kpi--primary">
+      <div class="kpi-label">&#9679; 累计总费用</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">0 个月合计</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">月均总费用</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">各月平均</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">累计用水量</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">0 吨</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">累计用电量</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">0 度</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">最高单月费用</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">电费占比</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-sub">占总费用</div>
+    </div>
+  </div>
+
+  <!-- 月度费用趋势 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">月度费用趋势</h2>
+    </div>
+    <div class="chart-panel">
+      <div style="position:relative;width:100%;height:280px;"><canvas id="trendChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 用水 & 用电 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">用水与用电</h2>
+    </div>
+    <div class="chart-row">
+      <div class="chart-panel">
+        <div class="chart-panel-title">各月用水量（吨）</div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="waterChart"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">各月用电量（度）</div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="elecChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 费用构成 & 单价 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">费用构成与电价</h2>
+    </div>
+    <div class="chart-row">
+      <div class="chart-panel">
+        <div class="chart-panel-title">累计费用占比</div>
+        <div class="legend-row">
+          <span><span class="legend-dot" style="background:#2563eb;"></span>电费</span>
+          <span><span class="legend-dot" style="background:#16a34a;"></span>水费</span>
+          <span><span class="legend-dot" style="background:#d97706;"></span>管理费</span>
+          <span><span class="legend-dot" style="background:#db2777;"></span>公摊电费</span>
+        </div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="pieChart"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">电价单价趋势（元/度）</div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="unitChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 明细表 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">账单明细</h2>
+      <span class="section-aux" id="tableCount"></span>
+    </div>
+    <div class="table-panel" id="tableWrap">
+      <div class="empty-msg">
+        <p>暂无数据</p>
+        <p>粘贴物业短信后自动添加</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>F3-2403 天骄时代城</span>
+    <span id="syncStatus" style="cursor:pointer" title="点击设置 GitHub 同步" onclick="toggleGistSetup()">连接中…</span>
+  </div>
+
+  <!-- Gist 设置面板 -->
+  <div id="gistSetup" class="gist-setup" style="display:none">
+    <div class="gist-setup-card">
+      <div class="gist-setup-hd">
+        <h3>GitHub Gist 数据同步</h3>
+        <p>数据将存储在您的 GitHub Gist 中，换电脑自动同步</p>
+      </div>
+      <div class="gist-setup-body">
+        <div class="gist-setup-steps">
+          <p><strong>1.</strong> 打开 <a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank">github.com/settings/tokens/new</a></p>
+          <p><strong>2.</strong> Expiration 选 <strong>No expiration</strong>，勾选 <strong>gist</strong> 权限</p>
+          <p><strong>3.</strong> 点击 Generate token，复制令牌粘贴到下方</p>
+        </div>
+        <div class="gist-setup-input">
+          <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+          <button class="btn btn-primary" onclick="setupGist()">连接 Gist</button>
+        </div>
+        <p id="gistSetupMsg" class="gist-setup-msg"></p>
+      </div>
+      <button class="gist-setup-close" onclick="toggleGistSetup()">&times;</button>
+    </div>
+  </div>
+
+</div> <!-- /page -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// SMS Regex Parser
+// ============================================================
+function parseSMSText(text) {
+  function val(pat, src) { const m = src.match(pat); return m ? parseFloat(m[1]) : null; }
+
+  let month = val(/2\d{3}[年\-\.](\d{1,2})/, text);
+  let year = val(/(2\d{3})[年\-\.]/, text);
+  if (year && month !== null) {
+    month = `${Math.floor(year)}-${String(Math.floor(month)).padStart(2,'0')}`;
+  } else { month = ''; }
+
+  const elecUsage = val(/实用电量(\d+\.?\d*)/, text);
+  const waterUsage = val(/实用水量(\d+\.?\d*)/, text);
+  const prevElec = val(/实用电量.+?上期读数(\d+\.?\d*)/, text);
+  const currElec = val(/实用电量.+?本期读数(\d+\.?\d*)/, text);
+  const prevWater = val(/实用水量.+?上期读数(\d+\.?\d*)/, text);
+  const currWater = val(/实用水量.+?本期读数(\d+\.?\d*)/, text);
+  const shareWater = val(/公摊水费(\d+\.?\d*)/, text);
+  const waterFee = val(/[，,]\s*水费(\d+\.?\d*)/, text) || val(/^水费(\d+\.?\d*)/, text);
+  const shareElec = val(/公摊电费(\d+\.?\d*)/, text);
+  const elecFee = val(/[，,]\s*电费(\d+\.?\d*)/, text) || val(/^电费(\d+\.?\d*)/, text);
+  const mgmtFee = val(/管理费(\d+\.?\d*)/, text);
+  const total = val(/总费用(\d+\.?\d*)/, text);
+
+  return { month, elecUsage, waterUsage, prevElec, currElec, prevWater, currWater,
+           shareWater, waterFee, shareElec, elecFee, mgmtFee, total };
+}
+
+// ============================================================
+// Data layer — Supabase + localStorage hybrid
+// ============================================================
+const STORAGE_KEY = 'property_bills_f3_2403';
+const CHART_COLORS = {
+  trend: '#2563eb', elec: '#dc2626', water: '#16a34a',
+  mgmt: '#d97706', share: '#db2777', unit: '#7c3aed'
+};
+
+// ============================================================
+// GitHub Gist API — 零 CDN 依赖，国内直连
+// ============================================================
+const GIST_API = 'https://api.github.com';
+const GIST_FILENAME = 'property-bills-f3-2403.json';
+const GIST_DESC = '天骄时代城F3-2403物业账单';
+
+let gistToken = null;
+let gistId = null;
+let gistOnline = false;
+
+function loadGistConfig() {
+  gistToken = localStorage.getItem('gist_token') || '';
+  gistId = localStorage.getItem('gist_id') || '';
+}
+
+function saveGistConfig() {
+  if (gistToken) localStorage.setItem('gist_token', gistToken);
+  else localStorage.removeItem('gist_token');
+  if (gistId) localStorage.setItem('gist_id', gistId);
+  else localStorage.removeItem('gist_id');
+}
+
+const ghHeaders = () => ({
+  'Authorization': 'token ' + gistToken,
+  'Accept': 'application/vnd.github.v3+json'
+});
+
+async function gistFetchBills() {
+  const res = await fetch(GIST_API + '/gists/' + gistId, { headers: ghHeaders() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gist = await res.json();
+  const file = gist.files[GIST_FILENAME];
+  if (!file || !file.content) throw new Error('数据文件不存在');
+  return JSON.parse(file.content);
+}
+
+async function gistUpdateBills(data) {
+  const body = { files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } } };
+  const res = await fetch(GIST_API + '/gists/' + gistId, {
+    method: 'PATCH',
+    headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+}
+
+async function gistCreate(data) {
+  const body = {
+    description: GIST_DESC, public: false,
+    files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } }
+  };
+  const res = await fetch(GIST_API + '/gists', {
+    method: 'POST',
+    headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gist = await res.json();
+  gistId = gist.id;
+  saveGistConfig();
+}
+
+async function gistFindExisting() {
+  const res = await fetch(GIST_API + '/gists?per_page=100', { headers: ghHeaders() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gists = await res.json();
+  const found = gists.find(g => g.description === GIST_DESC && g.files && g.files[GIST_FILENAME]);
+  if (found) { gistId = found.id; saveGistConfig(); }
+  return found;
+}
+
+async function checkGistConnection() {
+  if (!gistToken) { gistOnline = false; return false; }
+  try {
+    const res = await fetch(GIST_API + '/user', { headers: ghHeaders() });
+    gistOnline = res.ok;
+    return res.ok;
+  } catch(e) { gistOnline = false; return false; }
+}
+
+let bills = [];
+let charts = {};
+let lastAddedIdx = -1;
+let gistConfigured = false;   // user has entered PAT
+
+// --- Sync status in footer ---
+function setSyncStatus(status, tooltip) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  gistOnline = (status === 'online');
+  const icons = { online: '&#9679;', offline: '&#9675;', syncing: '&#8987;' };
+  const labels = { online: 'Gist 已同步', offline: '未设置同步', syncing: '同步中…' };
+  el.innerHTML = '<span>' + icons[status] + '</span> ' + labels[status];
+  el.title = tooltip || '';
+  el.style.cursor = 'pointer';
+}
+
+async function loadData() {
+  loadGistConfig();
+
+  // Always start from localStorage (instant)
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) bills = JSON.parse(d);
+  } catch(e) {}
+  if (!bills.length) bills = getDefaultData();
+
+  // If no Gist token configured, show setup hint
+  if (!gistToken) {
+    setSyncStatus('offline', '点击配置 GitHub 同步');
+    gistConfigured = false;
+    showGistSetup(true);
+    return;
+  }
+
+  gistConfigured = true;
+  showGistSetup(false);
+  setSyncStatus('syncing');
+
+  // Try Gist
+  const online = await checkGistConnection();
+  if (!online) {
+    setSyncStatus('offline', 'GitHub 连接失败，数据保存于本机');
+    return;
+  }
+
+  try {
+    // Find or create Gist
+    if (!gistId) await gistFindExisting();
+
+    if (gistId) {
+      // Gist exists — load data
+      const data = await gistFetchBills();
+      if (data && data.length > 0) {
+        bills = data.map(normalizeBill);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+        setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN'));
+        return;
+      }
+    }
+    // No Gist yet or empty — create one
+    await gistCreate(bills);
+    setSyncStatus('online', '已创建 Gist · ' + new Date().toLocaleString('zh-CN'));
+  } catch(e) {
+    console.warn('Gist 连接失败:', e.message);
+    setSyncStatus('offline', 'Gist 连接失败，使用本机存储');
+  }
+}
+
+// Normalize — ensure all fields present
+function normalizeBill(b) {
+  return {
+    month: b.month, total: b.total || 0,
+    elecFee: b.elecFee || 0, waterFee: b.waterFee || 0,
+    mgmtFee: b.mgmtFee || 0, shareElec: b.shareElec || 0,
+    shareWater: b.shareWater || 0,
+    elecUsage: b.elecUsage || 0, waterUsage: b.waterUsage || 0,
+    prevElec: b.prevElec || null, currElec: b.currElec || null,
+    prevWater: b.prevWater || null, currWater: b.currWater || null
+  };
+}
+
+async function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+  if (gistOnline && gistToken && gistId) {
+    try {
+      await gistUpdateBills(bills.map(normalizeBill));
+      setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN'));
+    } catch(e) {
+      console.warn('Gist 更新失败:', e.message);
+      setSyncStatus('offline', '同步失败，数据已保存在本机');
+    }
+  }
+}
+
+function getDefaultData() {
+  return [
+    {month:'2025-03',total:444.80,elecFee:251.40,waterFee:43.40,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:315,waterUsage:10,prevElec:9825,currElec:10140,prevWater:231,currWater:241},
+    {month:'2025-04',total:431.12,elecFee:237.72,waterFee:43.40,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:297,waterUsage:10,prevElec:10140,currElec:10437,prevWater:241,currWater:251},
+    {month:'2025-05',total:476.40,elecFee:287.34,waterFee:39.06,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:353,waterUsage:9,prevElec:10437,currElec:10790,prevWater:251,currWater:260},
+    {month:'2025-06',total:352.77,elecFee:189.75,waterFee:13.02,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:237,waterUsage:3,prevElec:10790,currElec:11027,prevWater:260,currWater:263},
+    {month:'2025-07',total:1007.52,elecFee:783.74,waterFee:73.78,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:1058,waterUsage:17,prevElec:11027,currElec:12085,prevWater:263,currWater:280},
+    {month:'2025-08',total:717.52,elecFee:506.76,waterFee:60.76,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:651,waterUsage:14,prevElec:12085,currElec:12736,prevWater:280,currWater:294},
+    {month:'2025-09',total:667.27,elecFee:465.19,waterFee:52.08,mgmtFee:150,shareElec:13.20,shareWater:0,elecUsage:587,waterUsage:12,prevElec:12736,currElec:13323,prevWater:294,currWater:306},
+    {month:'2025-10',total:593.20,elecFee:395.46,waterFee:47.74,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:498,waterUsage:11,prevElec:13323,currElec:13821,prevWater:306,currWater:317},
+    {month:'2025-11',total:453.20,elecFee:259.80,waterFee:43.40,mgmtFee:150,shareElec:10.80,shareWater:0,elecUsage:332,waterUsage:10,prevElec:13821,currElec:14153,prevWater:317,currWater:327},
+    {month:'2025-12',total:503.48,elecFee:310.08,waterFee:43.40,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:393,waterUsage:10,prevElec:14153,currElec:14546,prevWater:327,currWater:337},
+    {month:'2026-01',total:470.92,elecFee:277.52,waterFee:43.40,mgmtFee:150,shareElec:9.60,shareWater:0,elecUsage:394,waterUsage:10,prevElec:14546,currElec:14940,prevWater:337,currWater:347},
+    {month:'2026-02',total:447.84,elecFee:258.78,waterFee:39.06,mgmtFee:150,shareElec:8.40,shareWater:0,elecUsage:321,waterUsage:9,prevElec:14940,currElec:15261,prevWater:347,currWater:356},
+    {month:'2026-03',total:495.12,elecFee:301.72,waterFee:43.40,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:382,waterUsage:10,prevElec:15261,currElec:15643,prevWater:356,currWater:366},
+    {month:'2026-04',total:504.56,elecFee:311.16,waterFee:43.40,mgmtFee:150,shareElec:10.20,shareWater:0,elecUsage:418,waterUsage:10,prevElec:15643,currElec:16061,prevWater:366,currWater:376},
+    {month:'2026-05',total:529.02,elecFee:339.96,waterFee:39.06,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:444,waterUsage:9,prevElec:16061,currElec:16505,prevWater:376,currWater:385}
+  ];
+}
+
+// ============================================================
+// Parse & add SMS
+// ============================================================
+function parseSMS() {
+  const text = document.getElementById('smsInput').value.trim();
+  if (!text) { showToast('请先粘贴物业短信'); return; }
+  const d = parseSMSText(text);
+  if (!d.month) { showToast('未能识别月份，请检查短信格式'); return; }
+  if (bills.some(b => b.month === d.month)) {
+    showToast(d.month + ' 已存在，请先删除旧记录再添加');
+    return;
+  }
+  if (d.total === null) { showToast('未能提取到有效数据，请检查短信格式'); return; }
+
+  bills.push({
+    month: d.month, total: d.total, elecFee: d.elecFee || 0,
+    waterFee: d.waterFee || 0, mgmtFee: d.mgmtFee || 0,
+    shareElec: d.shareElec || 0, shareWater: d.shareWater || 0,
+    elecUsage: d.elecUsage || 0, waterUsage: d.waterUsage || 0,
+    prevElec: d.prevElec, currElec: d.currElec,
+    prevWater: d.prevWater, currWater: d.currWater
+  });
+  bills.sort((a,b) => a.month.localeCompare(b.month));
+  lastAddedIdx = bills.findIndex(b => b.month === d.month);
+  saveData();
+  document.getElementById('smsInput').value = '';
+  render();
+  showToast('已添加 ' + d.month);
+}
+
+// ============================================================
+// Delete / Reset
+// ============================================================
+function deleteRecord(idx) {
+  if (!confirm('确认删除 ' + bills[idx].month + ' 的数据？')) return;
+  bills.splice(idx, 1);
+  saveData();
+  render();
+  showToast('已删除');
+}
+
+function clearAll() {
+  if (!bills.length) return;
+  if (!confirm('确认清空所有数据？此操作不可恢复！')) return;
+  bills = [];
+  lastAddedIdx = -1;
+  saveData();
+  render();
+  showToast('数据已全部清除');
+}
+
+// ============================================================
+// Render pipeline
+// ============================================================
+function render() {
+  document.getElementById('recordCount').textContent = bills.length;
+
+  if (!bills.length) {
+    document.getElementById('kpiGrid').querySelectorAll('.kpi-value').forEach(el => el.textContent = '\u2014');
+    document.querySelectorAll('.kpi .kpi-sub').forEach(el => el.textContent = '');
+    document.getElementById('tableWrap').innerHTML = '<div class="empty-msg"><p>暂无数据</p><p>粘贴物业短信后自动添加</p></div>';
+    Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
+    document.getElementById('tableCount').textContent = '';
+    return;
+  }
+
+  updateKPIs();
+  updateTable();
+  updateCharts();
+}
+
+// ============================================================
+// KPI cards with MoM comparison
+// ============================================================
+function updateKPIs() {
+  const totalSum = bills.reduce((s,b) => s + b.total, 0);
+  const avg = totalSum / bills.length;
+  const waterSum = bills.reduce((s,b) => s + (b.waterUsage||0), 0);
+  const elecSum = bills.reduce((s,b) => s + (b.elecUsage||0), 0);
+  const elecFeeSum = bills.reduce((s,b) => s + b.elecFee, 0);
+  const maxB = bills.reduce((mx,b) => b.total > mx.total ? b : mx, bills[0]);
+  const elecPct = (elecFeeSum / totalSum * 100);
+
+  // MoM comparison — compare latest vs previous month
+  const latest = bills[bills.length - 1];
+  const prev = bills.length > 1 ? bills[bills.length - 2] : null;
+  const momChange = prev ? ((latest.total - prev.total) / prev.total * 100) : null;
+
+  function momHTML(change) {
+    if (change === null) return '';
+    if (Math.abs(change) < 0.5) return '<span class="kpi-change neutral">持平</span>';
+    const cls = change > 0 ? 'up' : 'down';
+    const arrow = change > 0 ? '&#9650;' : '&#9660;';
+    return `<span class="kpi-change ${cls}">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+  }
+
+  const cells = document.querySelectorAll('#kpiGrid .kpi');
+  if (cells.length >= 6) {
+    cells[0].querySelector('.kpi-value').textContent = '\xA5' + totalSum.toFixed(0);
+    cells[0].querySelector('.kpi-sub').innerHTML = bills.length + ' 个月合计 ' + momHTML(momChange);
+
+    cells[1].querySelector('.kpi-value').textContent = '\xA5' + avg.toFixed(0);
+    cells[1].querySelector('.kpi-sub').textContent = '各月平均';
+
+    cells[2].querySelector('.kpi-value').textContent = waterSum.toFixed(0) + ' 吨';
+    cells[2].querySelector('.kpi-sub').textContent = '月均 ' + (waterSum/bills.length).toFixed(1) + ' 吨';
+
+    cells[3].querySelector('.kpi-value').textContent = elecSum.toFixed(0) + ' 度';
+    cells[3].querySelector('.kpi-sub').textContent = '月均 ' + (elecSum/bills.length).toFixed(0) + ' 度';
+
+    cells[4].querySelector('.kpi-value').textContent = '\xA5' + maxB.total.toFixed(2);
+    cells[4].querySelector('.kpi-sub').textContent = maxB.month;
+
+    cells[5].querySelector('.kpi-value').textContent = elecPct.toFixed(1) + '%';
+    cells[5].querySelector('.kpi-sub').textContent = '占总费用';
+  }
+}
+
+// ============================================================
+// Table
+// ============================================================
+function updateTable() {
+  const wrap = document.getElementById('tableWrap');
+  document.getElementById('tableCount').textContent = bills.length + ' 条记录';
+
+  let html = '<table><thead><tr><th>月份</th><th>用水（吨）</th><th>水费</th><th>用电（度）</th><th>电费</th><th>公摊电费</th><th>管理费</th><th>总费用</th><th>等级</th><th></th></tr></thead><tbody>';
+
+  bills.forEach((b,i) => {
+    const level = b.total > 700 ? 'high' : b.total > 550 ? 'mid' : 'low';
+    const labels = {high:'高',mid:'中',low:'低'};
+    const rowClass = (i === lastAddedIdx) ? ' class="row-new"' : '';
+    html += '<tr' + rowClass + '><td>' + b.month + '</td><td>' + (b.waterUsage||0) + '</td><td>' + b.waterFee.toFixed(2) + '</td><td>' + (b.elecUsage||0) + '</td><td>' + b.elecFee.toFixed(2) + '</td><td>' + b.shareElec.toFixed(2) + '</td><td>' + b.mgmtFee.toFixed(2) + '</td><td><strong>' + b.total.toFixed(2) + '</strong></td><td><span class="badge badge-' + level + '">' + labels[level] + '</span></td><td><span class="delete-btn" onclick="deleteRecord(' + i + ')" title="删除">&times;</span></td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// ============================================================
+// Charts
+// ============================================================
+function updateCharts() {
+  const labels = bills.map(b => b.month.replace('20','').replace('-',''));
+  const total = bills.map(b => b.total);
+  const elec = bills.map(b => b.elecFee);
+  const water = bills.map(b => b.waterFee);
+  const waterQty = bills.map(b => b.waterUsage||0);
+  const elecQty = bills.map(b => b.elecUsage||0);
+  const unitPrice = elec.map((e,i) => e && elecQty[i] ? +(e / elecQty[i]).toFixed(4) : 0);
+
+  Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
+
+  const baseOpts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 600, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#0f172a',
+        bodyColor: '#334155',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 10,
+        cornerRadius: 8,
+        titleFont: { weight: '600' }
+      }
+    }
+  };
+
+  const xTickOpts = { font: { size: 10, weight: '500' }, autoSkip: false, maxRotation: 45, color: '#94a3b8' };
+  const gridColor = '#f1f5f9';
+
+  // Trend line
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '总费用', data: total, borderColor: CHART_COLORS.trend, backgroundColor: 'rgba(37,99,235,.06)',
+          tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.trend, borderWidth: 2.5 },
+        { label: '电费', data: elec, borderColor: CHART_COLORS.elec, backgroundColor: 'transparent',
+          tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: CHART_COLORS.elec, borderWidth: 1.8 },
+        { label: '水费', data: water, borderColor: CHART_COLORS.water, backgroundColor: 'transparent',
+          tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: CHART_COLORS.water, borderDash: [6,3], borderWidth: 1.8 }
+      ]
+    },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => '\xA5'+v }, grid: { color: gridColor } } } }
+  });
+
+  // Water bar
+  charts.water = new Chart(document.getElementById('waterChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: '用水量', data: waterQty,
+        backgroundColor: waterQty.map(v => v > 14 ? CHART_COLORS.elec : v > 10 ? CHART_COLORS.mgmt : CHART_COLORS.water),
+        borderRadius: 4, borderSkipped: false }]
+    },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => v+' 吨' }, grid: { color: gridColor } } } }
+  });
+
+  // Electric bar
+  charts.elec = new Chart(document.getElementById('elecChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: '用电量', data: elecQty,
+        backgroundColor: elecQty.map(v => v > 700 ? CHART_COLORS.elec : v > 400 ? CHART_COLORS.mgmt : CHART_COLORS.trend),
+        borderRadius: 4, borderSkipped: false }]
+    },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => v+' 度' }, grid: { color: gridColor } } } }
+  });
+
+  // Doughnut
+  const sumE = bills.reduce((s,b) => s + b.elecFee, 0);
+  const sumW = bills.reduce((s,b) => s + b.waterFee, 0);
+  const sumM = bills.reduce((s,b) => s + b.mgmtFee, 0);
+  const sumS = bills.reduce((s,b) => s + b.shareElec, 0);
+  const grand = sumE + sumW + sumM + sumS;
+
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['电费','水费','管理费','公摊电费'],
+      datasets: [{
+        data: [+sumE.toFixed(2), +sumW.toFixed(2), +sumM.toFixed(2), +sumS.toFixed(2)],
+        backgroundColor: [CHART_COLORS.trend, CHART_COLORS.water, CHART_COLORS.mgmt, CHART_COLORS.share],
+        borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 4
+      }]
+    },
+    options: {
+      ...baseOpts,
+      cutout: '64%',
+      animation: { ...baseOpts.animation, animateRotate: true },
+      plugins: {
+        ...baseOpts.plugins,
+        tooltip: { ...baseOpts.plugins.tooltip, callbacks: { label: ctx => ctx.label + ': \xA5' + Number(ctx.raw).toFixed(0) + ' (' + (ctx.raw/grand*100).toFixed(1) + '%)' } }
+      }
+    }
+  });
+
+  // Unit price line
+  charts.unit = new Chart(document.getElementById('unitChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ label: '单价（元/度）', data: unitPrice, borderColor: CHART_COLORS.unit, backgroundColor: 'rgba(124,58,237,.05)',
+        tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.unit, borderWidth: 2.5 }]
+    },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { min: .6, ticks: { callback: v => '\xA5'+v }, grid: { color: gridColor } } } }
+  });
+}
+
+// ============================================================
+// CSV Export
+// ============================================================
+function exportCSV() {
+  if (!bills.length) { showToast('暂无数据可导出'); return; }
+  let csv = '月份,用水量(吨),水费(元),用电量(度),电费(元),公摊电费(元),管理费(元),总费用(元)\n';
+  bills.forEach(b => {
+    csv += b.month + ',' + (b.waterUsage||0) + ',' + b.waterFee.toFixed(2) + ',' + (b.elecUsage||0) + ',' + b.elecFee.toFixed(2) + ',' + b.shareElec.toFixed(2) + ',' + b.mgmtFee.toFixed(2) + ',' + b.total.toFixed(2) + '\n';
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '物业账单_F3-2403.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('CSV 已导出');
+}
+
+// ============================================================
+// CSV Import
+// ============================================================
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const lines = e.target.result.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { showToast('CSV 文件为空'); return; }
+      const header = lines[0].replace(/^\ufeff/, '');
+      const newBills = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length < 8) continue;
+        const month = cols[0].trim();
+        if (!month || !month.match(/^\d{4}-\d{2}$/)) continue;
+        newBills.push({
+          month,
+          waterUsage: parseFloat(cols[1]) || 0,
+          waterFee: parseFloat(cols[2]) || 0,
+          elecUsage: parseFloat(cols[3]) || 0,
+          elecFee: parseFloat(cols[4]) || 0,
+          shareElec: parseFloat(cols[5]) || 0,
+          mgmtFee: parseFloat(cols[6]) || 0,
+          total: parseFloat(cols[7]) || 0,
+          shareWater: 0,
+          prevElec: null, currElec: null,
+          prevWater: null, currWater: null
+        });
+      }
+      if (!newBills.length) { showToast('未识别到有效数据'); return; }
+      bills = newBills;
+      bills.sort((a, b) => a.month.localeCompare(b.month));
+      lastAddedIdx = bills.length - 1;
+      saveData();
+      render();
+      showToast('已导入 ' + bills.length + ' 条记录');
+    } catch (err) {
+      showToast('导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
+// ============================================================
+// Toast notification
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// Keyboard shortcut: Ctrl+Enter to parse  +  Import button
+// ============================================================
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    parseSMS();
+  }
+});
+
+document.getElementById('importBtn').addEventListener('click', function() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv';
+  input.style.cssText = 'position:fixed;top:-100px;left:-100px;width:0;height:0;opacity:0;pointer-events:none;z-index:-1';
+  document.body.appendChild(input);
+  input.onchange = function(ev) { importCSV(ev); input.remove(); };
+  // Delay click to ensure DOM attachment completes
+  requestAnimationFrame(function() { input.click(); });
+});
+
+// ============================================================
+// Gist Setup UI
+// ============================================================
+function toggleGistSetup() {
+  const el = document.getElementById('gistSetup');
+  if (el.style.display === 'none' || !el.style.display) {
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function showGistSetup(show) {
+  document.getElementById('gistSetup').style.display = show ? 'flex' : 'none';
+}
+
+async function setupGist() {
+  const input = document.getElementById('gistTokenInput');
+  const msg = document.getElementById('gistSetupMsg');
+  const token = input.value.trim();
+
+  if (!token) { msg.className = 'gist-setup-msg error'; msg.textContent = '请粘贴 GitHub Token'; return; }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    msg.className = 'gist-setup-msg error'; msg.textContent = 'Token 格式不正确，应以 ghp_ 或 github_pat_ 开头'; return;
+  }
+
+  msg.className = 'gist-setup-msg'; msg.textContent = '验证中…';
+
+  // Test the token
+  try {
+    const res = await fetch(GIST_API + '/user', {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) throw new Error('Token 无效');
+    const user = await res.json();
+    msg.className = 'gist-setup-msg success';
+    msg.textContent = 'Token 有效 — GitHub 用户: ' + user.login;
+  } catch(e) {
+    msg.className = 'gist-setup-msg error';
+    msg.textContent = 'Token 验证失败：' + e.message;
+    return;
+  }
+
+  // Save token
+  gistToken = token;
+  gistConfigured = true;
+  saveGistConfig();
+  input.value = '';
+
+  // Find or create Gist
+  msg.textContent += ' — 同步中…';
+  try {
+    const found = await gistFindExisting();
+    if (found) {
+      // Load existing data
+      const data = await gistFetchBills();
+      if (data && data.length) {
+        bills = data.map(normalizeBill);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+      }
+    } else {
+      // Create new Gist with current data
+      await gistCreate(bills);
+    }
+    gistOnline = true;
+    setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN'));
+    msg.textContent += ' — 同步成功！';
+    setTimeout(() => { showGistSetup(false); render(); }, 1200);
+  } catch(e) {
+    msg.className = 'gist-setup-msg error';
+    msg.textContent = 'Gist 创建失败：' + e.message + '。Token 已保存，请重试。';
+    setSyncStatus('offline', 'Token 有效但 Gist 创建失败');
+  }
+}
+
+// Allow clicking Escape to close setup
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const el = document.getElementById('gistSetup');
+    if (el.style.display === 'flex') el.style.display = 'none';
+  }
+});
+
+// ============================================================
+// Init
+// ============================================================
+(async function() {
+  await loadData();
+  render();
+})();
+</script>
+</body>
+</html>
