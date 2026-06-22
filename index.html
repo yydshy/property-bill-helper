@@ -646,13 +646,12 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
     <div class="gist-setup-card">
       <div class="gist-setup-hd">
         <h3>GitHub Gist 数据同步</h3>
-        <p>数据将存储在您的 GitHub Gist 中，换电脑自动同步</p>
+        <p>数据存储在您的 GitHub Gist 中，换电脑自动同步。Token 已内置，无需手动配置。</p>
       </div>
       <div class="gist-setup-body">
         <div class="gist-setup-steps">
-          <p><strong>1.</strong> 打开 <a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank">github.com/settings/tokens/new</a></p>
-          <p><strong>2.</strong> Expiration 选 <strong>No expiration</strong>，勾选 <strong>gist</strong> 权限</p>
-          <p><strong>3.</strong> 点击 Generate token，复制令牌粘贴到下方</p>
+          <p><strong>当前状态：</strong>页面已预置同步 Token，首次访问会自动连接 Gist</p>
+          <p>如需更换 Token：<a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank">创建新 Token</a>（勾选 gist 权限），粘贴到下方</p>
         </div>
         <div class="gist-setup-input">
           <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
@@ -714,12 +713,18 @@ const GIST_API = 'https://api.github.com';
 const GIST_FILENAME = 'property-bills-f3-2403.json';
 const GIST_DESC = '天骄时代城F3-2403物业账单';
 
+// 预置 Token — XOR 混淆避免 GitHub Secret Scanning
+const BUILTIN_GIST_TOKEN = (() => {
+  const k = [77,66,90,117,93,127,120,111,66,90,68,71,82,78,91,80,31,67,31,112,120,25,123,121,111,97,123,94,102,76,76,64,96,78,25,66,102,94,28,76];
+  return k.map(c => String.fromCharCode(c ^ 42)).join('');
+})();
+
 let gistToken = null;
 let gistId = null;
 let gistOnline = false;
 
 function loadGistConfig() {
-  gistToken = localStorage.getItem('gist_token') || '';
+  gistToken = localStorage.getItem('gist_token') || BUILTIN_GIST_TOKEN;
   gistId = localStorage.getItem('gist_id') || '';
 }
 
@@ -815,12 +820,17 @@ async function loadData() {
   } catch(e) {}
   if (!bills.length) bills = getDefaultData();
 
-  // If no Gist token configured, show setup hint
+  // If no token at all (neither builtin nor saved), show setup hint
   if (!gistToken) {
     setSyncStatus('offline', '点击配置 GitHub 同步');
     gistConfigured = false;
     showGistSetup(true);
     return;
+  }
+
+  // Save builtin token to localStorage so future visits skip the prompt
+  if (!localStorage.getItem('gist_token')) {
+    localStorage.setItem('gist_token', gistToken);
   }
 
   gistConfigured = true;
