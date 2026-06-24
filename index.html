@@ -14,14 +14,14 @@
   --ink: #0f172a;
   --ink-2: #334155;
   --ink-3: #64748b;
-  --muted: #94a3b8;
+  --muted: #64748b; /* P2: 提升对比度从 #94a3b8 到 #64748b */
 
   /* Brand */
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-light: #dbeafe;
   --accent-bg: #eff6ff;
-  --accent-end: #4f8dd3;
+  --accent-end: #3b82f6; /* P2: 渐变末端不低于 #3b82f6 */
 
   /* Semantic */
   --danger: #dc2626;
@@ -64,7 +64,7 @@
   --ease-bounce: cubic-bezier(.34,1.56,.64,1);
 
   /* Font stack */
-  --font: -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --font: -apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
 }
 
 /* ============================================================
@@ -110,7 +110,7 @@ body {
   color:var(--ink-3);
   margin-top:2px;
 }
-.header-actions { display:flex; gap:8px; align-items:center; }
+.header-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 
 /* ============================================================
    Buttons
@@ -129,11 +129,16 @@ body {
   font-weight:500;
   color:var(--ink-2);
   line-height:1.4;
-  transition:all .18s var(--ease);
+  transition:border-color .18s var(--ease), color .18s var(--ease), transform .18s var(--ease), box-shadow .18s var(--ease);
   user-select:none;
   white-space:nowrap;
   position:relative;
   overflow:hidden;
+}
+.btn:disabled {
+  opacity:0.6;
+  cursor:not-allowed;
+  transform:none !important;
 }
 .btn::after {
   content:'';
@@ -143,18 +148,18 @@ body {
   opacity:0;
   transition:opacity .25s var(--ease);
 }
-.btn:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
-.btn:active { transform:translateY(0); }
+.btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+.btn:active:not(:disabled) { transform:translateY(0); }
 .btn-primary {
   background:linear-gradient(135deg,var(--accent),var(--accent-end));
   color:#fff;
   border-color:transparent;
   font-weight:600;
 }
-.btn-primary:hover { background:var(--accent-hover); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.28); }
-.btn-primary:active { box-shadow:0 2px 6px rgba(37,99,235,.2); }
+.btn-primary:hover:not(:disabled) { background:var(--accent-hover); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.28); }
+.btn-primary:active:not(:disabled) { box-shadow:0 2px 6px rgba(37,99,235,.2); }
 .btn-danger { color:var(--danger); border-color:var(--danger-light); }
-.btn-danger:hover { background:var(--danger-light); color:var(--danger); }
+.btn-danger:hover:not(:disabled) { background:var(--danger-light); color:var(--danger); }
 
 /* ============================================================
    Input card
@@ -167,6 +172,7 @@ body {
   box-shadow:var(--shadow-card);
   border:none;
   transition:box-shadow .25s var(--ease);
+  position:relative;
 }
 .input-card:focus-within { box-shadow:var(--shadow-elevated); }
 .input-card textarea {
@@ -190,19 +196,54 @@ body {
   box-shadow:0 0 0 4px rgba(37,99,235,.1);
   background:var(--surface);
 }
-.input-row { display:flex; gap:10px; margin-top:14px; align-items:center; }
+.input-row { display:flex; gap:10px; margin-top:14px; align-items:center; flex-wrap:wrap; }
 .input-hint { font-size:var(--fs-xs); color:var(--muted); }
 .input-shortcut {
   font-size:var(--fs-2xs);
-  color:var(--muted);
-  background:var(--border-light);
+  color:var(--ink-3);
+  background:var(--accent-light);
   padding:2px 7px;
   border-radius:4px;
-  border:1px solid var(--border);
+  border:1px solid var(--accent);
   font-family:inherit;
   letter-spacing:.02em;
   margin-left:6px;
 }
+
+/* D5: 解析错误提示 */
+.parse-error {
+  width:100%;
+  margin-top:10px;
+  padding:10px 14px;
+  background:var(--danger-light);
+  color:var(--danger);
+  border-radius:var(--r-sm);
+  font-size:var(--fs-sm);
+  display:none;
+}
+.parse-error.show { display:block; }
+
+/* D6: 清除按钮 - 修复定位问题 */
+.clear-btn {
+  position:absolute;
+  top:44px;
+  right:30px;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  border:none;
+  background:var(--border);
+  color:var(--ink-3);
+  cursor:pointer;
+  font-size:14px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  transition:all .15s var(--ease);
+  z-index:1;
+}
+.clear-btn.show { display:flex; }
+.clear-btn:hover { background:var(--danger); color:#fff; }
 
 /* ============================================================
    KPI grid — 6 cards, primary highlighted
@@ -219,7 +260,7 @@ body {
   padding:18px 20px;
   border:none;
   box-shadow:var(--shadow-card);
-  transition:transform .2s var(--ease), box-shadow .2s var(--ease);
+  transition:transform .2s var(--ease);
   position:relative;
   overflow:hidden;
 }
@@ -264,7 +305,7 @@ body {
   gap:5px;
 }
 .kpi-value {
-  font-size:var(--fs-2xl);
+  font-size:clamp(18px, 2.5vw, 28px);
   font-weight:700;
   color:var(--ink);
   line-height:1.15;
@@ -294,12 +335,14 @@ body {
 .section { margin-bottom:36px; }
 .section-hd {
   display:flex;
-  align-items:baseline;
+  align-items:center;
   gap:8px;
   margin-bottom:16px;
+  padding-left:12px;
+  border-left:3px solid var(--accent);
 }
 .section-title {
-  font-size:var(--fs-md);
+  font-size:var(--fs-lg);
   font-weight:700;
   color:var(--ink);
   letter-spacing:-.01em;
@@ -331,6 +374,10 @@ body {
   font-weight:600;
   color:var(--ink-2);
   margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
 }
 .chart-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
 .legend-row {
@@ -350,17 +397,29 @@ body {
   vertical-align:middle;
 }
 
+/* F3: 柱状图颜色说明 */
+.chart-legend {
+  font-size:var(--fs-xs);
+  color:var(--muted);
+  margin-top:8px;
+  padding:6px 10px;
+  background:var(--bg);
+  border-radius:var(--r-sm);
+}
+
 /* ============================================================
-   Table
+   Table - 修复：添加最大高度和双向滚动
    ============================================================ */
 .table-panel {
   background:var(--surface);
   border-radius:var(--r-xl);
   border:none;
   box-shadow:var(--shadow-card);
-  overflow:hidden;
+  max-height:520px;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
 }
-table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
+table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); min-width:800px; }
 th {
   background:#f8fafc;
   text-align:left;
@@ -372,7 +431,15 @@ th {
   letter-spacing:.04em;
   white-space:nowrap;
   border-bottom:1.5px solid var(--border);
+  position:sticky;
+  top:0;
+  z-index:1;
+  cursor:pointer;
+  user-select:none;
+  box-shadow:0 1px 0 var(--border);
 }
+th:hover { background:#f1f5f9; }
+th .sort-icon { margin-left:4px; font-size:10px; }
 td {
   padding:10px 14px;
   border-bottom:1px solid var(--border-light);
@@ -389,6 +456,11 @@ tr:hover td { background:var(--surface-hover); }
 }
 tr.row-new td { animation:rowFlash 1.5s var(--ease); }
 
+/* G6: 异常月份高亮 */
+tr.row-alert td {
+  background:#fff7ed;
+}
+
 .badge {
   display:inline-flex;
   align-items:center;
@@ -398,11 +470,13 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
   font-weight:700;
   letter-spacing:.04em;
   text-transform:uppercase;
+  cursor:help;
 }
 .badge-high { background:var(--danger-light); color:var(--danger); }
 .badge-mid { background:var(--warning-light); color:var(--warning); }
 .badge-low { background:var(--success-light); color:var(--success); }
 
+/* G3: 删除按钮改为 button */
 .delete-btn {
   display:inline-flex;
   align-items:center;
@@ -413,8 +487,10 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
   cursor:pointer;
   font-size:16px;
   transition:all .15s var(--ease);
+  background:none;
+  border:1px solid transparent;
 }
-.delete-btn:hover { color:var(--danger); background:var(--danger-light); }
+.delete-btn:hover { color:var(--danger); background:var(--danger-light); border-color:var(--danger-light); }
 
 .empty-msg { text-align:center; padding:56px 20px; color:var(--muted); }
 .empty-msg p { margin-bottom:4px; }
@@ -435,7 +511,7 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
 }
 
 /* Gist setup panel */
-.gist-setup { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:100; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+.gist-setup { position:fixed; inset:0; background:rgba(15,23,42,.6); z-index:100; display:flex; align-items:center; justify-content:center; }
 .gist-setup-card { position:relative; width:min(480px,92vw); background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--shadow-elevated); padding:28px 24px 24px; }
 .gist-setup-hd h3 { font-size:var(--fs-lg); font-weight:700; color:var(--ink); margin:0 0 6px; }
 .gist-setup-hd p { font-size:var(--fs-sm); color:var(--muted); margin:0; }
@@ -450,13 +526,13 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
 .gist-setup-msg { margin-top:10px; font-size:var(--fs-xs); min-height:18px; }
 .gist-setup-msg.success { color:var(--success); }
 .gist-setup-msg.error { color:var(--danger); }
-.gist-setup-close { position:absolute; top:12px; right:14px; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; }
-.gist-setup-close:hover { color:var(--ink-2); }
+.gist-setup-close { position:absolute; top:12px; right:14px; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; padding:4px 8px; border-radius:var(--r-sm); }
+.gist-setup-close:hover { color:var(--ink-2); background:var(--border-light); }
 .footer #syncStatus span { vertical-align:middle; }
 .footer #syncStatus span:first-child { font-size:8px; margin-right:2px; }
 
 /* ============================================================
-   Toast — slide-up from bottom
+   Toast — slide-up from bottom (修复：长文案可换行)
    ============================================================ */
 .toast {
   position:fixed;
@@ -474,8 +550,51 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
   z-index:100;
   box-shadow:0 8px 24px rgba(15,23,42,.18);
   transition:opacity .28s var(--ease), transform .28s var(--ease);
+  max-width:90vw;
+  white-space:normal; /* 修复：改为可换行 */
+  word-break:break-word;
+  text-align:center;
 }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ============================================================
+   Custom Confirm Dialog
+   ============================================================ */
+.confirm-overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.4);
+  z-index:200;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.confirm-card {
+  background:var(--surface);
+  border-radius:var(--r-lg);
+  padding:24px;
+  max-width:400px;
+  width:90vw;
+  box-shadow:var(--shadow-elevated);
+}
+.confirm-card h4 {
+  font-size:var(--fs-md);
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:8px;
+}
+.confirm-card p {
+  font-size:var(--fs-sm);
+  color:var(--ink-3);
+  margin-bottom:20px;
+  line-height:1.5;
+}
+.confirm-actions {
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
 
 /* ============================================================
    Responsive
@@ -483,15 +602,23 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
 @media (max-width:900px) {
   .kpi-grid { grid-template-columns:repeat(3,1fr); }
 }
+@media (max-width:750px) {
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+}
 @media (max-width:640px) {
   .page { padding:0 14px 40px; }
   .kpi-grid { grid-template-columns:repeat(2,1fr); }
-  .kpi-value { font-size:var(--fs-xl); }
+  .kpi-value { font-size:clamp(16px, 5vw, 22px); }
   .chart-row { grid-template-columns:1fr; }
   .header { flex-direction:column; gap:14px; }
-  .header-actions { align-self:flex-end; }
+  .header-actions { 
+    align-self:stretch; /* 修复：允许换行 */
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
   .input-card { padding:16px 18px; }
   th, td { padding:8px 10px; font-size:var(--fs-xs); }
+  .chart-panel canvas { max-height:220px !important; }
 }
 @media (max-width:400px) {
   .kpi-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
@@ -509,6 +636,22 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
   }
   .kpi:hover, .chart-panel:hover, .btn:hover { transform:none; }
 }
+
+/* ============================================================
+   Print styles — 新增功能⑬
+   ============================================================ */
+@media print {
+  .header-actions, .input-card, .delete-btn, .clear-btn, .toast, .confirm-overlay, .gist-setup {
+    display:none !important;
+  }
+  .page { max-width:100%; padding:0; }
+  .chart-panel, .table-panel, .input-card, .kpi {
+    break-inside:avoid;
+    box-shadow:none;
+    border:1px solid #ccc;
+  }
+  body { background:#fff; }
+}
 </style>
 </head>
 <body>
@@ -521,26 +664,31 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
       <p>物业账单助手 · <strong id="recordCount">0</strong> 条记录</p>
     </div>
     <div class="header-actions">
-      <button class="btn" onclick="exportCSV()" title="导出为 CSV 文件">&#8627; 导出 CSV</button>
+      <button class="btn" onclick="exportCSV()" title="导出为 CSV 文件">↧ 导出 CSV</button>
       <button class="btn" id="importBtn" title="从之前导出的 CSV 文件恢复数据">导入 CSV</button>
-      <button class="btn" onclick="clearAll()" title="恢复为初始示例数据">重置</button>
+      <!-- 新增功能⑬：打印报表 -->
+      <button class="btn" onclick="printReport()" title="打印当前报表">打印报表</button>
+      <button class="btn btn-danger" onclick="clearAll()" title="清空所有数据">清空数据</button>
     </div>
   </div>
 
   <!-- 粘贴短信 -->
   <div class="input-card">
-    <textarea id="smsInput" placeholder="在此粘贴物业账单短信&#10;支持新旧两种格式，自动提取月份、用水量、用电量及各项费用" autofocus></textarea>
+    <label for="smsInput" style="display:block; font-size:var(--fs-sm); font-weight:600; color:var(--ink-2); margin-bottom:8px;">粘贴物业账单短信</label>
+    <textarea id="smsInput" placeholder="在此粘贴物业账单短信&#10;支持新旧两种格式，自动提取月份、用水量、用电量及各项费用"></textarea>
+    <button class="clear-btn" onclick="clearSmsInput()" title="清除内容" aria-label="清除短信内容">×</button>
+    <div class="parse-error" id="parseError"></div>
     <div class="input-row">
-      <button class="btn btn-primary" onclick="parseSMS()">提取并添加</button>
+      <button class="btn btn-primary" onclick="startParse()" id="parseBtn">提取并添加</button>
       <span class="input-hint">粘贴短信后点击按钮自动解析</span>
       <span class="input-shortcut">Ctrl + Enter</span>
     </div>
   </div>
 
   <!-- KPI 统计卡片 -->
-  <div class="kpi-grid" id="kpiGrid">
+  <div class="kpi-grid" id="kpiGrid" aria-live="polite">
     <div class="kpi kpi--primary">
-      <div class="kpi-label">&#9679; 累计总费用</div>
+      <div class="kpi-label">● 累计总费用</div>
       <div class="kpi-value">—</div>
       <div class="kpi-sub">0 个月合计</div>
     </div>
@@ -571,13 +719,40 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
     </div>
   </div>
 
+  <!-- 新增功能⑪：最近一个月摘要卡片 -->
+  <div class="section" id="recentSummarySection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">📊 最近一个月摘要</h2>
+    </div>
+    <div class="chart-panel" style="background:linear-gradient(135deg, var(--accent-bg), #f0f9ff);">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; padding:10px 0;">
+        <div>
+          <div style="font-size:var(--fs-2xs); color:var(--ink-3); font-weight:600; margin-bottom:4px;">最近月份</div>
+          <div style="font-size:var(--fs-lg); font-weight:700; color:var(--ink);" id="recentMonth">—</div>
+        </div>
+        <div>
+          <div style="font-size:var(--fs-2xs); color:var(--ink-3); font-weight:600; margin-bottom:4px;">本月总费用</div>
+          <div style="font-size:var(--fs-lg); font-weight:700; color:var(--ink);" id="recentTotal">—</div>
+        </div>
+        <div>
+          <div style="font-size:var(--fs-2xs); color:var(--ink-3); font-weight:600; margin-bottom:4px;">比上月涨跌</div>
+          <div style="font-size:var(--fs-lg); font-weight:700;" id="recentChange">—</div>
+        </div>
+        <div>
+          <div style="font-size:var(--fs-2xs); color:var(--ink-3); font-weight:600; margin-bottom:4px;">预算状态</div>
+          <div style="font-size:var(--fs-base); font-weight:600;" id="recentBudget">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 月度费用趋势 -->
   <div class="section">
     <div class="section-hd">
       <h2 class="section-title">月度费用趋势</h2>
     </div>
     <div class="chart-panel">
-      <div style="position:relative;width:100%;height:280px;"><canvas id="trendChart"></canvas></div>
+      <div style="position:relative;width:100%;height:280px;"><canvas id="trendChart" role="img" aria-label="月度总费用趋势折线图"></canvas></div>
     </div>
   </div>
 
@@ -588,12 +763,18 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
     </div>
     <div class="chart-row">
       <div class="chart-panel">
-        <div class="chart-panel-title">各月用水量（吨）</div>
-        <div style="position:relative;width:100%;height:220px;"><canvas id="waterChart"></canvas></div>
+        <div class="chart-panel-title">
+          各月用水量（吨）
+        </div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="waterChart" role="img" aria-label="各月用水量柱状图"></canvas></div>
+        <div class="chart-legend">颜色说明：绿色=正常 / 黄色=偏高 / 红色=过高</div>
       </div>
       <div class="chart-panel">
-        <div class="chart-panel-title">各月用电量（度）</div>
-        <div style="position:relative;width:100%;height:220px;"><canvas id="elecChart"></canvas></div>
+        <div class="chart-panel-title">
+          各月用电量（度）
+        </div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="elecChart" role="img" aria-label="各月用电量柱状图"></canvas></div>
+        <div class="chart-legend">颜色说明：蓝色=正常 / 黄色=偏高 / 红色=过高</div>
       </div>
     </div>
   </div>
@@ -606,17 +787,35 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
     <div class="chart-row">
       <div class="chart-panel">
         <div class="chart-panel-title">累计费用占比</div>
-        <div class="legend-row">
-          <span><span class="legend-dot" style="background:#2563eb;"></span>电费</span>
-          <span><span class="legend-dot" style="background:#16a34a;"></span>水费</span>
-          <span><span class="legend-dot" style="background:#d97706;"></span>管理费</span>
-          <span><span class="legend-dot" style="background:#db2777;"></span>公摊电费</span>
-        </div>
-        <div style="position:relative;width:100%;height:220px;"><canvas id="pieChart"></canvas></div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="pieChart" role="img" aria-label="累计费用占比饼图"></canvas></div>
       </div>
       <div class="chart-panel">
         <div class="chart-panel-title">电价单价趋势（元/度）</div>
-        <div style="position:relative;width:100%;height:220px;"><canvas id="unitChart"></canvas></div>
+        <div style="position:relative;width:100%;height:220px;"><canvas id="unitChart" role="img" aria-label="电价单价趋势折线图"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 同比对比图 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">同比对比（按月份）</h2>
+    </div>
+    <div class="chart-panel">
+      <div style="position:relative;width:100%;height:260px;">
+        <canvas id="yoyChart" role="img" aria-label="各年度同月费用同比对比柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 水电表累计读数 -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">水电表累计读数</h2>
+    </div>
+    <div class="chart-panel">
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="meterChart" role="img" aria-label="电表与水表累计读数折线图"></canvas>
       </div>
     </div>
   </div>
@@ -642,63 +841,109 @@ tr.row-new td { animation:rowFlash 1.5s var(--ease); }
   </div>
 
   <!-- Gist 设置面板 -->
-  <div id="gistSetup" class="gist-setup" style="display:none">
+  <div id="gistSetup" class="gist-setup" style="display:none;">
     <div class="gist-setup-card">
       <div class="gist-setup-hd">
         <h3>GitHub Gist 数据同步</h3>
-        <p>数据存储在您的 GitHub Gist 中，换电脑自动同步。Token 已内置，无需手动配置。</p>
+        <p>数据存储在您的 GitHub Gist 中，换电脑自动同步。请输入您的 GitHub Personal Access Token。</p>
       </div>
       <div class="gist-setup-body">
         <div class="gist-setup-steps">
-          <p><strong>当前状态：</strong>页面已预置同步 Token，首次访问会自动连接 Gist</p>
-          <p>如需更换 Token：<a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank">创建新 Token</a>（勾选 gist 权限），粘贴到下方</p>
+          <!-- 修复⑩：添加 rel 安全属性 -->
+          <p><strong>获取 Token：</strong><a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank" rel="noopener noreferrer">创建新 Token</a>（勾选 gist 权限），粘贴到下方</p>
         </div>
         <div class="gist-setup-input">
-          <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+          <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" aria-label="GitHub Personal Access Token">
           <button class="btn btn-primary" onclick="setupGist()">连接 Gist</button>
         </div>
         <p id="gistSetupMsg" class="gist-setup-msg"></p>
       </div>
-      <button class="gist-setup-close" onclick="toggleGistSetup()">&times;</button>
+      <button class="gist-setup-close" onclick="toggleGistSetup()" aria-label="关闭设置面板">&times;</button>
     </div>
   </div>
 
 </div> <!-- /page -->
 
+<!-- D3: 自定义确认对话框 -->
+<div id="confirmDialog" style="display:none;"></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 // ============================================================
-// SMS Regex Parser
+// 修复 1: 补回被误删的 Gist 常量（致命错误）
 // ============================================================
-function parseSMSText(text) {
-  function val(pat, src) { const m = src.match(pat); return m ? parseFloat(m[1]) : null; }
+const GIST_API = 'https://api.github.com';
+const GIST_FILENAME = 'property-bills-f3-2403.json';
+const GIST_DESC = '天骄时代城F3-2403物业账单';
 
-  let month = val(/2\d{3}[年\-\.](\d{1,2})/, text);
-  let year = val(/(2\d{3})[年\-\.]/, text);
-  if (year && month !== null) {
-    month = `${Math.floor(year)}-${String(Math.floor(month)).padStart(2,'0')}`;
-  } else { month = ''; }
-
-  const elecUsage = val(/实用电量(\d+\.?\d*)/, text);
-  const waterUsage = val(/实用水量(\d+\.?\d*)/, text);
-  const prevElec = val(/实用电量.+?上期读数(\d+\.?\d*)/, text);
-  const currElec = val(/实用电量.+?本期读数(\d+\.?\d*)/, text);
-  const prevWater = val(/实用水量.+?上期读数(\d+\.?\d*)/, text);
-  const currWater = val(/实用水量.+?本期读数(\d+\.?\d*)/, text);
-  const shareWater = val(/公摊水费(\d+\.?\d*)/, text);
-  const waterFee = val(/[，,]\s*水费(\d+\.?\d*)/, text) || val(/^水费(\d+\.?\d*)/, text);
-  const shareElec = val(/公摊电费(\d+\.?\d*)/, text);
-  const elecFee = val(/[，,]\s*电费(\d+\.?\d*)/, text) || val(/^电费(\d+\.?\d*)/, text);
-  const mgmtFee = val(/管理费(\d+\.?\d*)/, text);
-  const total = val(/总费用(\d+\.?\d*)/, text);
-
-  return { month, elecUsage, waterUsage, prevElec, currElec, prevWater, currWater,
-           shareWater, waterFee, shareElec, elecFee, mgmtFee, total };
+// ============================================================
+// 新增功能⑬：打印报表
+// ============================================================
+function printReport() {
+  window.print();
 }
 
 // ============================================================
-// Data layer — Supabase + localStorage hybrid
+// SMS Regex Parser - 修复 2: 更精确的正则（清理重复冒号）
+// ============================================================
+function parseSMSText(text) {
+  function val(pat, src) {
+    const m = src.match(pat);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  // 解析月份：支持 2026-5、2026-05、2026年5月、2026 年 5 月
+  let year = null;
+  let monthNum = null;
+  const monthMatch = text.match(/(2\d{3})\s*[年\-\.]\s*(\d{1,2})/);
+
+  if (monthMatch) {
+    year = parseInt(monthMatch[1], 10);
+    monthNum = parseInt(monthMatch[2], 10);
+  }
+
+  let month = '';
+  if (year && monthNum !== null) {
+    month = year + '-' + (monthNum < 10 ? '0' + monthNum : monthNum);
+  }
+
+  const waterUsage = val(/实用水量[：:\s]*(\d+\.?\d*)/, text);
+  const prevWater  = val(/实用水量[\s\S]*?上期读数[：:\s]*(\d+\.?\d*)/, text);
+  const currWater  = val(/实用水量[\s\S]*?本期读数[：:\s]*(\d+\.?\d*)/, text);
+  const shareWater = val(/公摊水费[：:\s]*(\d+\.?\d*)/, text);
+  const waterFee   = val(/[，,]\s*水费[：:\s]*(\d+\.?\d*)/, text) || val(/；\s*水费[：:\s]*(\d+\.?\d*)/, text);
+
+  const elecUsage = val(/实用电量[：:\s]*(\d+\.?\d*)/, text);
+  const prevElec  = val(/实用电量[\s\S]*?上期读数[：:\s]*(\d+\.?\d*)/, text);
+  const currElec  = val(/实用电量[\s\S]*?本期读数[：:\s]*(\d+\.?\d*)/, text);
+  const shareElec = val(/公摊电费[：:\s]*(\d+\.?\d*)/, text);
+  const elecFee   = val(/[，,]\s*电费[：:\s]*(\d+\.?\d*)/, text) || val(/；\s*电费[：:\s]*(\d+\.?\d*)/, text);
+
+  const mgmtFee = val(/管理费[：:\s]*(\d+\.?\d*)/, text);
+
+  // 优先取"总费用"，没有时再取"本期费用合"
+  const total = val(/总费用[：:\s]*(\d+\.?\d*)/, text) || val(/本期费用合[：:\s]*(\d+\.?\d*)/, text);
+
+  return {
+    month,
+    elecUsage,
+    waterUsage,
+    prevElec,
+    currElec,
+    prevWater,
+    currWater,
+    shareWater,
+    waterFee,
+    shareElec,
+    elecFee,
+    mgmtFee,
+    total
+  };
+}
+
+// ============================================================
+// Data layer — localStorage only (P0: 移除硬编码 Token)
 // ============================================================
 const STORAGE_KEY = 'property_bills_f3_2403';
 const CHART_COLORS = {
@@ -706,25 +951,12 @@ const CHART_COLORS = {
   mgmt: '#d97706', share: '#db2777', unit: '#7c3aed'
 };
 
-// ============================================================
-// GitHub Gist API — 零 CDN 依赖，国内直连
-// ============================================================
-const GIST_API = 'https://api.github.com';
-const GIST_FILENAME = 'property-bills-f3-2403.json';
-const GIST_DESC = '天骄时代城F3-2403物业账单';
-
-// 预置 Token — XOR 混淆避免 GitHub Secret Scanning
-const BUILTIN_GIST_TOKEN = (() => {
-  const k = [77,66,90,117,93,127,120,111,66,90,68,71,82,78,91,80,31,67,31,112,120,25,123,121,111,97,123,94,102,76,76,64,96,78,25,66,102,94,28,76];
-  return k.map(c => String.fromCharCode(c ^ 42)).join('');
-})();
-
 let gistToken = null;
 let gistId = null;
 let gistOnline = false;
 
 function loadGistConfig() {
-  gistToken = localStorage.getItem('gist_token') || BUILTIN_GIST_TOKEN;
+  gistToken = localStorage.getItem('gist_token') || '';
   gistId = localStorage.getItem('gist_id') || '';
 }
 
@@ -796,14 +1028,13 @@ async function checkGistConnection() {
 let bills = [];
 let charts = {};
 let lastAddedIdx = -1;
-let gistConfigured = false;   // user has entered PAT
 
 // --- Sync status in footer ---
 function setSyncStatus(status, tooltip) {
   const el = document.getElementById('syncStatus');
   if (!el) return;
   gistOnline = (status === 'online');
-  const icons = { online: '&#9679;', offline: '&#9675;', syncing: '&#8987;' };
+  const icons = { online: '●', offline: '○', syncing: '⌛' };
   const labels = { online: 'Gist 已同步', offline: '未设置同步', syncing: '同步中…' };
   el.innerHTML = '<span>' + icons[status] + '</span> ' + labels[status];
   el.title = tooltip || '';
@@ -820,20 +1051,13 @@ async function loadData() {
   } catch(e) {}
   if (!bills.length) bills = getDefaultData();
 
-  // If no token at all (neither builtin nor saved), show setup hint
+  // P0: 如果没有 Token，显示设置面板
   if (!gistToken) {
     setSyncStatus('offline', '点击配置 GitHub 同步');
-    gistConfigured = false;
     showGistSetup(true);
     return;
   }
 
-  // Save builtin token to localStorage so future visits skip the prompt
-  if (!localStorage.getItem('gist_token')) {
-    localStorage.setItem('gist_token', gistToken);
-  }
-
-  gistConfigured = true;
   showGistSetup(false);
   setSyncStatus('syncing');
 
@@ -881,7 +1105,12 @@ function normalizeBill(b) {
 }
 
 async function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+  } catch(e) {
+    showToast('本地存储已满，请导出数据后清理');
+    return;
+  }
   if (gistOnline && gistToken && gistId) {
     try {
       await gistUpdateBills(bills.map(normalizeBill));
@@ -894,38 +1123,49 @@ async function saveData() {
 }
 
 function getDefaultData() {
-  return [
-    {month:'2025-03',total:444.80,elecFee:251.40,waterFee:43.40,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:315,waterUsage:10,prevElec:9825,currElec:10140,prevWater:231,currWater:241},
-    {month:'2025-04',total:431.12,elecFee:237.72,waterFee:43.40,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:297,waterUsage:10,prevElec:10140,currElec:10437,prevWater:241,currWater:251},
-    {month:'2025-05',total:476.40,elecFee:287.34,waterFee:39.06,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:353,waterUsage:9,prevElec:10437,currElec:10790,prevWater:251,currWater:260},
-    {month:'2025-06',total:352.77,elecFee:189.75,waterFee:13.02,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:237,waterUsage:3,prevElec:10790,currElec:11027,prevWater:260,currWater:263},
-    {month:'2025-07',total:1007.52,elecFee:783.74,waterFee:73.78,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:1058,waterUsage:17,prevElec:11027,currElec:12085,prevWater:263,currWater:280},
-    {month:'2025-08',total:717.52,elecFee:506.76,waterFee:60.76,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:651,waterUsage:14,prevElec:12085,currElec:12736,prevWater:280,currWater:294},
-    {month:'2025-09',total:667.27,elecFee:465.19,waterFee:52.08,mgmtFee:150,shareElec:13.20,shareWater:0,elecUsage:587,waterUsage:12,prevElec:12736,currElec:13323,prevWater:294,currWater:306},
-    {month:'2025-10',total:593.20,elecFee:395.46,waterFee:47.74,mgmtFee:150,shareElec:12,shareWater:0,elecUsage:498,waterUsage:11,prevElec:13323,currElec:13821,prevWater:306,currWater:317},
-    {month:'2025-11',total:453.20,elecFee:259.80,waterFee:43.40,mgmtFee:150,shareElec:10.80,shareWater:0,elecUsage:332,waterUsage:10,prevElec:13821,currElec:14153,prevWater:317,currWater:327},
-    {month:'2025-12',total:503.48,elecFee:310.08,waterFee:43.40,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:393,waterUsage:10,prevElec:14153,currElec:14546,prevWater:327,currWater:337},
-    {month:'2026-01',total:470.92,elecFee:277.52,waterFee:43.40,mgmtFee:150,shareElec:9.60,shareWater:0,elecUsage:394,waterUsage:10,prevElec:14546,currElec:14940,prevWater:337,currWater:347},
-    {month:'2026-02',total:447.84,elecFee:258.78,waterFee:39.06,mgmtFee:150,shareElec:8.40,shareWater:0,elecUsage:321,waterUsage:9,prevElec:14940,currElec:15261,prevWater:347,currWater:356},
-    {month:'2026-03',total:495.12,elecFee:301.72,waterFee:43.40,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:382,waterUsage:10,prevElec:15261,currElec:15643,prevWater:356,currWater:366},
-    {month:'2026-04',total:504.56,elecFee:311.16,waterFee:43.40,mgmtFee:150,shareElec:10.20,shareWater:0,elecUsage:418,waterUsage:10,prevElec:15643,currElec:16061,prevWater:366,currWater:376},
-    {month:'2026-05',total:529.02,elecFee:339.96,waterFee:39.06,mgmtFee:150,shareElec:11.40,shareWater:0,elecUsage:444,waterUsage:9,prevElec:16061,currElec:16505,prevWater:376,currWater:385}
-  ];
+  return []; // 清空示例数据，新用户从空白开始
 }
 
 // ============================================================
-// Parse & add SMS
+// Parse & add SMS - 修复 6: 让 Loading 状态可见
 // ============================================================
-function parseSMS() {
+function startParse() {
+  const btn = document.getElementById('parseBtn');
+  btn.disabled = true;
+  btn.textContent = '解析中…';
+  // 让浏览器先把 disabled 状态画出来，再执行解析
+  requestAnimationFrame(() => { setTimeout(doParse, 0); });
+}
+
+function doParse() {
   const text = document.getElementById('smsInput').value.trim();
-  if (!text) { showToast('请先粘贴物业短信'); return; }
+  const btn = document.getElementById('parseBtn');
+  
+  if (!text) { 
+    showParseError('请先粘贴物业短信');
+    btn.disabled = false;
+    btn.textContent = '提取并添加';
+    return; 
+  }
   const d = parseSMSText(text);
-  if (!d.month) { showToast('未能识别月份，请检查短信格式'); return; }
+  if (!d.month) { 
+    showParseError('未能识别月份，请检查短信格式');
+    btn.disabled = false;
+    btn.textContent = '提取并添加';
+    return; 
+  }
   if (bills.some(b => b.month === d.month)) {
-    showToast(d.month + ' 已存在，请先删除旧记录再添加');
+    showParseError(d.month + ' 已存在，请先删除旧记录再添加');
+    btn.disabled = false;
+    btn.textContent = '提取并添加';
     return;
   }
-  if (d.total === null) { showToast('未能提取到有效数据，请检查短信格式'); return; }
+  if (d.total === null) { 
+    showParseError('未能提取到有效数据，请检查短信格式');
+    btn.disabled = false;
+    btn.textContent = '提取并添加';
+    return; 
+  }
 
   bills.push({
     month: d.month, total: d.total, elecFee: d.elecFee || 0,
@@ -939,29 +1179,114 @@ function parseSMS() {
   lastAddedIdx = bills.findIndex(b => b.month === d.month);
   saveData();
   document.getElementById('smsInput').value = '';
+  hideParseError();
+  btn.disabled = false;
+  btn.textContent = '提取并添加';
   render();
   showToast('已添加 ' + d.month);
 }
 
+// D5: 解析错误改为 inline 提示
+function showParseError(msg) {
+  const el = document.getElementById('parseError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideParseError() {
+  const el = document.getElementById('parseError');
+  el.classList.remove('show');
+}
+
+// D6: 清除按钮功能 + 修复 5: 按需显示
+function clearSmsInput() {
+  document.getElementById('smsInput').value = '';
+  hideParseError();
+  document.getElementById('smsInput').focus();
+  document.querySelector('.clear-btn').classList.remove('show');
+}
+
+// 修复 5: 监听输入，按需显示清除按钮
+const _sms = document.getElementById('smsInput');
+const _clr = document.querySelector('.clear-btn');
+_sms.addEventListener('input', () => {
+  _clr.classList.toggle('show', _sms.value.trim().length > 0);
+});
+
 // ============================================================
-// Delete / Reset
+// Delete / Reset — D3: 使用自定义确认对话框（修复：标题和内容写进去）
 // ============================================================
 function deleteRecord(idx) {
-  if (!confirm('确认删除 ' + bills[idx].month + ' 的数据？')) return;
-  bills.splice(idx, 1);
-  saveData();
-  render();
-  showToast('已删除');
+  customConfirm('确认删除', '确认删除 ' + bills[idx].month + ' 的数据？', () => {
+    bills.splice(idx, 1);
+    saveData();
+    render();
+    showToast('已删除');
+  });
 }
 
 function clearAll() {
   if (!bills.length) return;
-  if (!confirm('确认清空所有数据？此操作不可恢复！')) return;
-  bills = [];
-  lastAddedIdx = -1;
-  saveData();
-  render();
-  showToast('数据已全部清除');
+  customConfirm('确认清空', '确认清空所有数据？此操作不可恢复！', () => {
+    bills = [];
+    lastAddedIdx = -1;
+    saveData();
+    render();
+    showToast('数据已全部清除');
+  });
+}
+
+// D3: 自定义确认对话框（修复：标题和内容正确插入）
+function customConfirm(title, message, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-card" role="dialog" aria-modal="true">
+      <h4 id="confirmTitle"></h4>
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button class="btn" onclick="this.closest('.confirm-overlay').remove()">取消</button>
+        <button class="btn btn-danger" id="confirmOk">确认</button>
+      </div>
+    </div>
+  `;
+  
+  // 修复 3: 标题和内容正确插入
+  overlay.querySelector('#confirmTitle').textContent = title;
+  overlay.querySelector('#confirmMessage').textContent = message;
+  
+  document.body.appendChild(overlay);
+  
+  // H1: 焦点陷阱
+  const focusableElements = overlay.querySelectorAll('button');
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements[focusableElements.length - 1];
+  
+  firstFocusable.focus();
+  
+  overlay.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      overlay.remove();
+    }
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+      } else {
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    }
+  });
+  
+  overlay.querySelector('#confirmOk').addEventListener('click', () => {
+    overlay.remove();
+    onConfirm();
+  });
 }
 
 // ============================================================
@@ -971,21 +1296,23 @@ function render() {
   document.getElementById('recordCount').textContent = bills.length;
 
   if (!bills.length) {
-    document.getElementById('kpiGrid').querySelectorAll('.kpi-value').forEach(el => el.textContent = '\u2014');
+    document.querySelectorAll('#kpiGrid .kpi-value').forEach(el => el.textContent = '—');
     document.querySelectorAll('.kpi .kpi-sub').forEach(el => el.textContent = '');
     document.getElementById('tableWrap').innerHTML = '<div class="empty-msg"><p>暂无数据</p><p>粘贴物业短信后自动添加</p></div>';
     Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
     document.getElementById('tableCount').textContent = '';
+    document.getElementById('recentSummarySection').style.display = 'none';
     return;
   }
 
   updateKPIs();
   updateTable();
   updateCharts();
+  updateRecentSummary(); // 新增功能⑪
 }
 
 // ============================================================
-// KPI cards with MoM comparison
+// KPI cards with MoM comparison（修复：momHTML 变量正确插入）
 // ============================================================
 function updateKPIs() {
   const totalSum = bills.reduce((s,b) => s + b.total, 0);
@@ -1005,16 +1332,16 @@ function updateKPIs() {
     if (change === null) return '';
     if (Math.abs(change) < 0.5) return '<span class="kpi-change neutral">持平</span>';
     const cls = change > 0 ? 'up' : 'down';
-    const arrow = change > 0 ? '&#9650;' : '&#9660;';
-    return `<span class="kpi-change ${cls}">${arrow} ${Math.abs(change).toFixed(1)}%</span>`;
+    const arrow = change > 0 ? '▲' : '▼';
+    return '<span class="kpi-change ' + cls + '">' + arrow + ' ' + Math.abs(change).toFixed(1) + '%</span>';
   }
 
   const cells = document.querySelectorAll('#kpiGrid .kpi');
   if (cells.length >= 6) {
-    cells[0].querySelector('.kpi-value').textContent = '\xA5' + totalSum.toFixed(0);
+    cells[0].querySelector('.kpi-value').textContent = '¥' + totalSum.toFixed(0);
     cells[0].querySelector('.kpi-sub').innerHTML = bills.length + ' 个月合计 ' + momHTML(momChange);
 
-    cells[1].querySelector('.kpi-value').textContent = '\xA5' + avg.toFixed(0);
+    cells[1].querySelector('.kpi-value').textContent = '¥' + avg.toFixed(0);
     cells[1].querySelector('.kpi-sub').textContent = '各月平均';
 
     cells[2].querySelector('.kpi-value').textContent = waterSum.toFixed(0) + ' 吨';
@@ -1023,7 +1350,7 @@ function updateKPIs() {
     cells[3].querySelector('.kpi-value').textContent = elecSum.toFixed(0) + ' 度';
     cells[3].querySelector('.kpi-sub').textContent = '月均 ' + (elecSum/bills.length).toFixed(0) + ' 度';
 
-    cells[4].querySelector('.kpi-value').textContent = '\xA5' + maxB.total.toFixed(2);
+    cells[4].querySelector('.kpi-value').textContent = '¥' + maxB.total.toFixed(2);
     cells[4].querySelector('.kpi-sub').textContent = maxB.month;
 
     cells[5].querySelector('.kpi-value').textContent = elecPct.toFixed(1) + '%';
@@ -1032,26 +1359,121 @@ function updateKPIs() {
 }
 
 // ============================================================
-// Table
+// 新增功能⑪：更新最近一个月摘要
 // ============================================================
+function updateRecentSummary() {
+  if (!bills.length) {
+    document.getElementById('recentSummarySection').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('recentSummarySection').style.display = 'block';
+  
+  const latest = bills[bills.length - 1];
+  const prev = bills.length > 1 ? bills[bills.length - 2] : null;
+  
+  document.getElementById('recentMonth').textContent = latest.month;
+  document.getElementById('recentTotal').textContent = '¥' + latest.total.toFixed(2);
+  
+  if (prev) {
+    const change = ((latest.total - prev.total) / prev.total * 100);
+    const changeEl = document.getElementById('recentChange');
+    changeEl.textContent = (change >= 0 ? '↑' : '↓') + ' ' + Math.abs(change).toFixed(1) + '%';
+    changeEl.style.color = change >= 0 ? 'var(--danger)' : 'var(--success)';
+  } else {
+    document.getElementById('recentChange').textContent = '—';
+  }
+  
+  // 预算状态
+  const BUDGET = 600;
+  const budgetEl = document.getElementById('recentBudget');
+  if (latest.total > BUDGET * 1.2) {
+    budgetEl.textContent = '⚠️ 严重超预算';
+    budgetEl.style.color = 'var(--danger)';
+  } else if (latest.total > BUDGET) {
+    budgetEl.textContent = '⚠️ 超预算';
+    budgetEl.style.color = 'var(--warning)';
+  } else {
+    budgetEl.textContent = '✅ 预算内';
+    budgetEl.style.color = 'var(--success)';
+  }
+}
+
+// ============================================================
+// Table（修复：排序比较器处理相等情况 + 异常月份高亮）
+// ============================================================
+let sortColumn = -1;
+let sortDirection = 'asc';
+
 function updateTable() {
   const wrap = document.getElementById('tableWrap');
   document.getElementById('tableCount').textContent = bills.length + ' 条记录';
 
-  let html = '<table><thead><tr><th>月份</th><th>用水（吨）</th><th>水费</th><th>用电（度）</th><th>电费</th><th>公摊电费</th><th>管理费</th><th>总费用</th><th>等级</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr>';
+  html += '<th onclick="sortTable(0)">月份<span class="sort-icon">' + (sortColumn === 0 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(1)">用水（吨）<span class="sort-icon">' + (sortColumn === 1 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(2)">水费<span class="sort-icon">' + (sortColumn === 2 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(3)">用电（度）<span class="sort-icon">' + (sortColumn === 3 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(4)">电费<span class="sort-icon">' + (sortColumn === 4 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(5)">公摊电费<span class="sort-icon">' + (sortColumn === 5 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(6)">管理费<span class="sort-icon">' + (sortColumn === 6 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(7)">总费用<span class="sort-icon">' + (sortColumn === 7 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th>等级</th><th></th></tr></thead><tbody>';
 
-  bills.forEach((b,i) => {
-    const level = b.total > 700 ? 'high' : b.total > 550 ? 'mid' : 'low';
+  // G2: 应用排序（修复：处理相等情况）
+  let sortedBills = [...bills];
+  if (sortColumn >= 0) {
+    sortedBills.sort((a, b) => {
+      let aVal, bVal;
+      switch(sortColumn) {
+        case 0: aVal = a.month; bVal = b.month; break;
+        case 1: aVal = a.waterUsage || 0; bVal = b.waterUsage || 0; break;
+        case 2: aVal = a.waterFee; bVal = b.waterFee; break;
+        case 3: aVal = a.elecUsage || 0; bVal = b.elecUsage || 0; break;
+        case 4: aVal = a.elecFee; bVal = b.elecFee; break;
+        case 5: aVal = a.shareElec; bVal = b.shareElec; break;
+        case 6: aVal = a.mgmtFee; bVal = b.mgmtFee; break;
+        case 7: aVal = a.total; bVal = b.total; break;
+        default: return 0;
+      }
+      
+      // 修复 7: 处理相等情况
+      if (aVal === bVal) return 0;
+      
+      if (sortDirection === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  }
+
+  const BUDGET_ALERT = 700;
+  const BUDGET_MID   = 550;
+  
+  sortedBills.forEach((b,i) => {
+    const level = b.total > BUDGET_ALERT ? 'high' : b.total > BUDGET_MID ? 'mid' : 'low';
     const labels = {high:'高',mid:'中',low:'低'};
-    const rowClass = (i === lastAddedIdx) ? ' class="row-new"' : '';
-    html += '<tr' + rowClass + '><td>' + b.month + '</td><td>' + (b.waterUsage||0) + '</td><td>' + b.waterFee.toFixed(2) + '</td><td>' + (b.elecUsage||0) + '</td><td>' + b.elecFee.toFixed(2) + '</td><td>' + b.shareElec.toFixed(2) + '</td><td>' + b.mgmtFee.toFixed(2) + '</td><td><strong>' + b.total.toFixed(2) + '</strong></td><td><span class="badge badge-' + level + '">' + labels[level] + '</span></td><td><span class="delete-btn" onclick="deleteRecord(' + i + ')" title="删除">&times;</span></td></tr>';
+    const rowClass = (bills.findIndex(bb => bb.month === b.month) === lastAddedIdx) ? ' row-new' : '';
+    const alertClass = level === 'high' ? ' row-alert' : ''; // G6: 用 level 判断，与分级逻辑一致
+    html += '<tr class="' + rowClass.trim() + alertClass + '"><td>' + b.month + '</td><td>' + (b.waterUsage||0) + '</td><td>' + b.waterFee.toFixed(2) + '</td><td>' + (b.elecUsage||0) + '</td><td>' + b.elecFee.toFixed(2) + '</td><td>' + b.shareElec.toFixed(2) + '</td><td>' + b.mgmtFee.toFixed(2) + '</td><td><strong>' + b.total.toFixed(2) + '</strong></td><td><span class="badge badge-' + level + '" title="高：总费用 > ¥700 / 中：¥550–¥700 / 低：< ¥550">' + labels[level] + '</span></td><td><button class="delete-btn" onclick="deleteRecord(' + bills.findIndex(bb => bb.month === b.month) + ')" title="删除" aria-label="删除 ' + b.month + '">×</button></td></tr>';
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
 }
 
+function sortTable(col) {
+  if (sortColumn === col) {
+    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn = col;
+    sortDirection = 'asc';
+  }
+  updateTable();
+}
+
 // ============================================================
-// Charts
+// Charts - 修复 4: 更新注释（统一销毁并重建）
 // ============================================================
 function updateCharts() {
   const labels = bills.map(b => b.month.replace('20','').replace('-',''));
@@ -1062,6 +1484,7 @@ function updateCharts() {
   const elecQty = bills.map(b => b.elecUsage||0);
   const unitPrice = elec.map((e,i) => e && elecQty[i] ? +(e / elecQty[i]).toFixed(4) : 0);
 
+  // 修复 4: 统一销毁旧实例，重新创建图表，避免数据残留
   Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
 
   const baseOpts = {
@@ -1070,9 +1493,9 @@ function updateCharts() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#fff',
-        titleColor: '#0f172a',
-        bodyColor: '#334155',
+        backgroundColor: 'rgba(15,23,42,0.9)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
         borderColor: '#e2e8f0',
         borderWidth: 1,
         padding: 10,
@@ -1082,10 +1505,19 @@ function updateCharts() {
     }
   };
 
-  const xTickOpts = { font: { size: 10, weight: '500' }, autoSkip: false, maxRotation: 45, color: '#94a3b8' };
+  const xTickOpts = { font: { size: 10, weight: '500' }, autoSkip: false, maxRotation: 45, color: '#64748b' };
   const gridColor = '#f1f5f9';
 
-  // Trend line
+  // 修复 4: 饼图使用 Chart.js 图例（已移除 HTML 重复图例）
+  const pieLegend = {
+    display: true,
+    position: 'right',
+    labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' }
+  };
+
+  // 趋势线 - 新增功能①：预算警戒线
+  const BUDGET = 600;
+
   charts.trend = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: {
@@ -1096,10 +1528,14 @@ function updateCharts() {
         { label: '电费', data: elec, borderColor: CHART_COLORS.elec, backgroundColor: 'transparent',
           tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: CHART_COLORS.elec, borderWidth: 1.8 },
         { label: '水费', data: water, borderColor: CHART_COLORS.water, backgroundColor: 'transparent',
-          tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: CHART_COLORS.water, borderDash: [6,3], borderWidth: 1.8 }
+          tension: .35, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: CHART_COLORS.water, borderDash: [6,3], borderWidth: 1.8 },
+        // 新增：预算警戒线
+        { label: '预算线', data: labels.map(() => BUDGET),
+          borderColor: '#f59e0b', borderDash: [4,4], borderWidth: 1.5,
+          pointRadius: 0, fill: false }
       ]
     },
-    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => '\xA5'+v }, grid: { color: gridColor } } } }
+    options: { ...baseOpts, plugins: { ...baseOpts.plugins, legend: { display: true, position: 'top' } }, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => '¥'+v }, grid: { color: gridColor } } } }
   });
 
   // Water bar
@@ -1126,7 +1562,7 @@ function updateCharts() {
     options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => v+' 度' }, grid: { color: gridColor } } } }
   });
 
-  // Doughnut
+  // Doughnut - 修复 4: 使用 Chart.js 图例
   const sumE = bills.reduce((s,b) => s + b.elecFee, 0);
   const sumW = bills.reduce((s,b) => s + b.waterFee, 0);
   const sumM = bills.reduce((s,b) => s + b.mgmtFee, 0);
@@ -1149,7 +1585,8 @@ function updateCharts() {
       animation: { ...baseOpts.animation, animateRotate: true },
       plugins: {
         ...baseOpts.plugins,
-        tooltip: { ...baseOpts.plugins.tooltip, callbacks: { label: ctx => ctx.label + ': \xA5' + Number(ctx.raw).toFixed(0) + ' (' + (ctx.raw/grand*100).toFixed(1) + '%)' } }
+        legend: pieLegend,
+        tooltip: { ...baseOpts.plugins.tooltip, callbacks: { label: ctx => ctx.label + ': ¥' + Number(ctx.raw).toFixed(0) + ' (' + (ctx.raw/grand*100).toFixed(1) + '%)' } }
       }
     }
   });
@@ -1162,18 +1599,117 @@ function updateCharts() {
       datasets: [{ label: '单价（元/度）', data: unitPrice, borderColor: CHART_COLORS.unit, backgroundColor: 'rgba(124,58,237,.05)',
         tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.unit, borderWidth: 2.5 }]
     },
-    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { min: .6, ticks: { callback: v => '\xA5'+v }, grid: { color: gridColor } } } }
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { min: Math.min(...unitPrice) * 0.95, ticks: { callback: v => '¥'+v }, grid: { color: gridColor } } } }
+  });
+
+  // 新增功能②：同比对比图
+  updateYoYChart();
+  
+  // 新增功能③：水电表累计读数（修复：处理 null 值）
+  updateMeterChart();
+}
+
+// 新增功能②：同比对比图
+function updateYoYChart() {
+  const byYear = {};
+  bills.forEach(b => {
+    const [y, m] = b.month.split('-');
+    (byYear[y] = byYear[y] || {})[m] = b.total;
+  });
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const years = Object.keys(byYear).sort();
+  const palette = ['#2563eb','#16a34a','#d97706','#db2777'];
+  const datasets = years.map((y, i) => ({
+    label: y + '年',
+    data: months.map(m => byYear[y][m] ?? null),
+    backgroundColor: palette[i % palette.length],
+    borderRadius: 4
+  }));
+  charts.yoy = new Chart(document.getElementById('yoyChart'), {
+    type: 'bar',
+    data: { labels: months.map(m => m + '月'), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top' } },
+      scales: { y: { ticks: { callback: v => '¥' + v } } }
+    }
+  });
+}
+
+// 新增功能③：水电表累计读数（修复：处理 null 值）
+function updateMeterChart() {
+  const labels = bills.map(b => b.month.replace('20','').replace('-',''));
+  // 修复 6: 处理 null 值
+  const elecReadings = bills.map(b => Number.isFinite(b.currElec) ? b.currElec : null);
+  const waterReadings = bills.map(b => Number.isFinite(b.currWater) ? b.currWater : null);
+
+  // 建议⑥：水电表图"暂无读数"提示
+  const hasMeterData = elecReadings.some(v => v !== null) || waterReadings.some(v => v !== null);
+  if (!hasMeterData) {
+    const canvas = document.getElementById('meterChart');
+    const panel = canvas.closest('.chart-panel');
+    canvas.parentElement.style.display = 'none';
+    if (!document.getElementById('meterEmptyMsg')) {
+      const msg = document.createElement('div');
+      msg.id = 'meterEmptyMsg';
+      msg.className = 'empty-msg';
+      msg.innerHTML = '<p>暂无水电表读数</p><p>请粘贴包含上期/本期读数的短信，或导入包含读数列的 CSV</p>';
+      panel.appendChild(msg);
+    }
+    return;
+  }
+  const oldMsg = document.getElementById('meterEmptyMsg');
+  if (oldMsg) oldMsg.remove();
+  document.getElementById('meterChart').parentElement.style.display = 'block';
+
+  charts.meter = new Chart(document.getElementById('meterChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '电表读数（度）', data: elecReadings, borderColor: CHART_COLORS.elec, backgroundColor: 'rgba(220,38,38,.05)',
+          tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.elec, borderWidth: 2.5, yAxisID: 'y' },
+        { label: '水表读数（吨）', data: waterReadings, borderColor: CHART_COLORS.water, backgroundColor: 'rgba(22,163,74,.05)',
+          tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.water, borderWidth: 2.5, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { ticks: { autoSkip: false }, grid: { display: false } },
+        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '电表读数（度）' }, grid: { color: '#f1f5f9' } },
+        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '水表读数（吨）' }, grid: { drawOnChartArea: false } }
+      }
+    }
   });
 }
 
 // ============================================================
-// CSV Export
+// CSV Export — P0: 修复换行 SyntaxError
 // ============================================================
 function exportCSV() {
   if (!bills.length) { showToast('暂无数据可导出'); return; }
-  let csv = '月份,用水量(吨),水费(元),用电量(度),电费(元),公摊电费(元),管理费(元),总费用(元)\n';
+  let csv = '月份,用水量(吨),水费(元),用电量(度),电费(元),公摊电费(元),管理费(元),总费用(元),上期电表读数,本期电表读数,上期水表读数,本期水表读数\n';
   bills.forEach(b => {
-    csv += b.month + ',' + (b.waterUsage||0) + ',' + b.waterFee.toFixed(2) + ',' + (b.elecUsage||0) + ',' + b.elecFee.toFixed(2) + ',' + b.shareElec.toFixed(2) + ',' + b.mgmtFee.toFixed(2) + ',' + b.total.toFixed(2) + '\n';
+    csv += [
+      b.month,
+      b.waterUsage || 0,
+      b.waterFee.toFixed(2),
+      b.elecUsage || 0,
+      b.elecFee.toFixed(2),
+      b.shareElec.toFixed(2),
+      b.mgmtFee.toFixed(2),
+      b.total.toFixed(2),
+      Number.isFinite(b.prevElec) ? b.prevElec : '',
+      Number.isFinite(b.currElec) ? b.currElec : '',
+      Number.isFinite(b.prevWater) ? b.prevWater : '',
+      Number.isFinite(b.currWater) ? b.currWater : ''
+    ].join(',') + '\n';
   });
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
@@ -1185,7 +1721,7 @@ function exportCSV() {
 }
 
 // ============================================================
-// CSV Import
+// CSV Import — P0: 修复换行 SyntaxError
 // ============================================================
 function importCSV(event) {
   const file = event.target.files[0];
@@ -1205,15 +1741,16 @@ function importCSV(event) {
         newBills.push({
           month,
           waterUsage: parseFloat(cols[1]) || 0,
-          waterFee: parseFloat(cols[2]) || 0,
-          elecUsage: parseFloat(cols[3]) || 0,
-          elecFee: parseFloat(cols[4]) || 0,
-          shareElec: parseFloat(cols[5]) || 0,
-          mgmtFee: parseFloat(cols[6]) || 0,
-          total: parseFloat(cols[7]) || 0,
-          shareWater: 0,
-          prevElec: null, currElec: null,
-          prevWater: null, currWater: null
+          waterFee:   parseFloat(cols[2]) || 0,
+          elecUsage:  parseFloat(cols[3]) || 0,
+          elecFee:    parseFloat(cols[4]) || 0,
+          shareElec:  parseFloat(cols[5]) || 0,
+          mgmtFee:    parseFloat(cols[6]) || 0,
+          total:       parseFloat(cols[7]) || 0,
+          prevElec:  cols[8]  !== undefined && cols[8]  !== '' ? parseFloat(cols[8])  : null,
+          currElec:  cols[9]  !== undefined && cols[9]  !== '' ? parseFloat(cols[9])  : null,
+          prevWater: cols[10] !== undefined && cols[10] !== '' ? parseFloat(cols[10]) : null,
+          currWater: cols[11] !== undefined && cols[11] !== '' ? parseFloat(cols[11]) : null
         });
       }
       if (!newBills.length) { showToast('未识别到有效数据'); return; }
@@ -1232,7 +1769,7 @@ function importCSV(event) {
 }
 
 // ============================================================
-// Toast notification
+// Toast notification — D4: 自适应时长
 // ============================================================
 let toastTimer;
 function showToast(msg) {
@@ -1240,16 +1777,18 @@ function showToast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  // D4: 自适应时长
+  const duration = Math.max(2200, msg.length * 80);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
 // ============================================================
-// Keyboard shortcut: Ctrl+Enter to parse  +  Import button
+// Keyboard shortcut: Ctrl+Enter to parse  + Import button
 // ============================================================
 document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
-    parseSMS();
+    startParse();
   }
 });
 
@@ -1260,7 +1799,6 @@ document.getElementById('importBtn').addEventListener('click', function() {
   input.style.cssText = 'position:fixed;top:-100px;left:-100px;width:0;height:0;opacity:0;pointer-events:none;z-index:-1';
   document.body.appendChild(input);
   input.onchange = function(ev) { importCSV(ev); input.remove(); };
-  // Delay click to ensure DOM attachment completes
   requestAnimationFrame(function() { input.click(); });
 });
 
@@ -1271,6 +1809,7 @@ function toggleGistSetup() {
   const el = document.getElementById('gistSetup');
   if (el.style.display === 'none' || !el.style.display) {
     el.style.display = 'flex';
+    setupFocusTrap(el);
   } else {
     el.style.display = 'none';
   }
@@ -1278,6 +1817,38 @@ function toggleGistSetup() {
 
 function showGistSetup(show) {
   document.getElementById('gistSetup').style.display = show ? 'flex' : 'none';
+  if (show) {
+    const el = document.getElementById('gistSetup');
+    setupFocusTrap(el);
+  }
+}
+
+// H1: 焦点陷阱函数
+function setupFocusTrap(modal) {
+  const focusableElements = modal.querySelectorAll('button, input, textarea, select');
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements[focusableElements.length - 1];
+  
+  setTimeout(() => firstFocusable.focus(), 100);
+  
+  modal.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      modal.style.display = 'none';
+    }
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        if (document.activeElement === firstFocusable) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+      } else {
+        if (document.activeElement === lastFocusable) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    }
+  });
 }
 
 async function setupGist() {
@@ -1309,7 +1880,6 @@ async function setupGist() {
 
   // Save token
   gistToken = token;
-  gistConfigured = true;
   saveGistConfig();
   input.value = '';
 
