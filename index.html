@@ -1104,21 +1104,88 @@ function normalizeBill(b) {
   };
 }
 
-async function saveData() {
+// ============================================================
+// 第四步辅助函数：用于判断本地数据是否为默认数据
+// ============================================================
+function normalizeBillsForCompare(list) {
+  return JSON.stringify(
+    list
+      .map(normalizeBill)
+      .sort((a, b) => a.month.localeCompare(b.month))
+  );
+}
+
+function isDefaultBills(list) {
+  return normalizeBillsForCompare(list) === normalizeBillsForCompare(getDefaultData());
+}
+
+// ============================================================
+// 第一步：确保 Gist 可保存（新增函数）
+// ============================================================
+async function ensureGistReadyForSave() {
+  loadGistConfig();
+
+  if (!gistToken) {
+    setSyncStatus('offline', '未配置 GitHub Token，数据仅保存在本机');
+    return false;
+  }
+
+  setSyncStatus('syncing', '正在连接 GitHub Gist…');
+
+  const online = await checkGistConnection();
+  if (!online) {
+    setSyncStatus('offline', 'GitHub 连接失败，数据仅保存在本机');
+    return false;
+  }
+
+  try {
+    if (!gistId) {
+      const found = await gistFindExisting();
+
+      if (!found) {
+        await gistCreate(bills);
+      }
+    }
+
+    gistOnline = true;
+    return true;
+  } catch (e) {
+    console.warn('Gist 准备失败:', e.message);
+    setSyncStatus('offline', 'Gist 准备失败，数据仅保存在本机');
+    return false;
+  }
+}
+
+async function saveData(options = {}) {
+  const forceRemote = options.forceRemote || false;
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
   } catch(e) {
     showToast('本地存储已满，请导出数据后清理');
-    return;
+    return false;
   }
-  if (gistOnline && gistToken && gistId) {
-    try {
-      await gistUpdateBills(bills.map(normalizeBill));
-      setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN'));
-    } catch(e) {
-      console.warn('Gist 更新失败:', e.message);
-      setSyncStatus('offline', '同步失败，数据已保存在本机');
-    }
+
+  if (!forceRemote && !gistOnline && !gistToken) {
+    setSyncStatus('offline', '未配置 GitHub Token，数据仅保存在本机');
+    return false;
+  }
+
+  const ready = await ensureGistReadyForSave();
+
+  if (!ready) {
+    return false;
+  }
+
+  try {
+    await gistUpdateBills(bills.map(normalizeBill));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+    setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN'));
+    return true;
+  } catch(e) {
+    console.warn('Gist 更新失败:', e.message);
+    setSyncStatus('offline', '同步失败，数据已保存在本机');
+    return false;
   }
 }
 
@@ -1727,7 +1794,7 @@ function importCSV(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const lines = e.target.result.split('\n').filter(l => l.trim());
       if (lines.length < 2) { showToast('CSV 文件为空'); return; }
@@ -1757,9 +1824,19 @@ function importCSV(event) {
       bills = newBills;
       bills.sort((a, b) => a.month.localeCompare(b.month));
       lastAddedIdx = bills.length - 1;
-      saveData();
+
       render();
-      showToast('已导入 ' + bills.length + ' 条记录');
+      showToast('正在保存到 GitHub…');
+
+      const synced = await saveData({ forceRemote: true });
+
+      render();
+
+      if (synced) {
+        showToast('已导入 ' + bills.length + ' 条记录，并已同步到 GitHub');
+      } else {
+        showToast('已导入 ' + bills.length + ' 条记录，但未同步到 GitHub，仅保存在本机');
+      }
     } catch (err) {
       showToast('导入失败：' + err.message);
     }
@@ -1887,15 +1964,22 @@ async function setupGist() {
   msg.textContent += ' — 同步中…';
   try {
     const found = await gistFindExisting();
+
     if (found) {
-      // Load existing data
-      const data = await gistFetchBills();
-      if (data && data.length) {
-        bills = data.map(normalizeBill);
+      const remoteData = await gistFetchBills().catch(() => []);
+      const localHasUserData = bills.length > 0 && !isDefaultBills(bills);
+
+      if (localHasUserData) {
+        // 当前本地数据不是默认数据，说明用户可能刚导入或新增过，优先上传本地数据
+        await gistUpdateBills(bills.map(normalizeBill));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
+      } else if (remoteData && remoteData.length) {
+        // 当前只是默认数据，则加载远程保存过的数据
+        bills = remoteData.map(normalizeBill);
+        bills.sort((a, b) => a.month.localeCompare(b.month));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(bills));
       }
     } else {
-      // Create new Gist with current data
       await gistCreate(bills);
     }
     gistOnline = true;
