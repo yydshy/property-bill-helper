@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物业账单用量 · F3-2403</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-hover: #1a1a1a;
+  --surface-raised: #1c1c1c;
+  --border: #262626;
+  --border-hover: #333;
+  --ink: #e5e5e5;
+  --ink-2: #a0a0a0;
+  --ink-3: #666;
+  --accent: #f5a623;
+  --accent-dim: rgba(245,166,35,0.08);
+  --accent-border: rgba(245,166,35,0.2);
+  --blue: #60a5fa;
+  --green: #4ade80;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --danger: #f87171;
+  --warning: #f5a623;
+  --success: #4ade80;
+  --font: -apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  font-family:var(--font);
+  font-size:14px;
+  line-height:1.6;
+  color:var(--ink-2);
+  background:var(--bg);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+.page { max-width:1100px; margin:0 auto; padding:56px 48px 96px; }
+
+/* Header */
+.page-header { margin-bottom:32px; }
+.page-title { font-size:28px; font-weight:700; color:var(--ink); letter-spacing:-0.02em; margin-bottom:6px; }
+.page-subtitle { font-size:13px; color:var(--ink-3); }
+
+/* Actions bar */
+.actions-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:12px; margin-bottom:32px;
+}
+.actions-left { display:flex; gap:10px; flex-wrap:wrap; }
+.actions-right { display:flex; gap:10px; flex-wrap:wrap; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 16px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; font-size:13px;
+  font-family:inherit; font-weight:500; color:var(--ink-2);
+  line-height:1.4; transition:all .2s ease; user-select:none; white-space:nowrap;
+}
+.btn:hover { background:var(--surface-hover); border-color:var(--border-hover); color:var(--ink); }
+.btn:active { transform:scale(0.98); }
+.btn-accent { border-color:var(--accent-border); color:var(--accent); background:var(--accent-dim); }
+.btn-accent:hover { background:rgba(245,166,35,0.12); border-color:rgba(245,166,35,0.35); }
+.btn-danger { color:var(--danger); border-color:rgba(248,113,113,0.15); background:rgba(248,113,113,0.04); }
+.btn-danger:hover { background:rgba(248,113,113,0.08); border-color:rgba(248,113,113,0.25); }
+
+/* Summary bar - big numbers */
+.summary-bar {
+  display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px;
+}
+.summary-item { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px 32px; }
+.summary-item.primary { border-color:var(--accent-border); background:var(--accent-dim); }
+.summary-label { font-size:13px; color:var(--ink-3); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.summary-value { font-size:36px; font-weight:700; color:var(--ink); letter-spacing:-0.02em; line-height:1.1; }
+.summary-value .unit { font-size:18px; font-weight:500; color:var(--ink-3); margin-left:4px; }
+.summary-item.primary .summary-value { color:var(--accent); }
+.summary-item.primary .summary-value .unit { color:rgba(245,166,35,0.6); }
+
+/* Input card */
+.input-section { margin-bottom:28px; }
+.input-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:24px 28px; position:relative; transition:border-color .2s ease;
+}
+.input-card:focus-within { border-color:var(--border-hover); }
+.input-card label { display:block; font-size:13px; font-weight:600; color:var(--ink-2); margin-bottom:10px; }
+.input-card textarea {
+  width:100%; min-height:90px; border:1.5px solid var(--border); border-radius:12px;
+  padding:14px 16px; font-size:13px; font-family:var(--font); line-height:1.7;
+  resize:vertical; outline:none; color:var(--ink); background:var(--bg);
+  transition:border-color .2s ease, box-shadow .2s ease;
+}
+.input-card textarea::placeholder { color:var(--ink-3); }
+.input-card textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,0.08); }
+.input-row { display:flex; gap:12px; margin-top:14px; align-items:center; flex-wrap:wrap; }
+.input-hint { font-size:12px; color:var(--ink-3); }
+.input-shortcut {
+  font-size:11px; color:var(--ink-3); background:rgba(255,255,255,0.04);
+  padding:3px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit;
+}
+.parse-error {
+  width:100%; margin-top:10px; padding:10px 14px;
+  background:rgba(248,113,113,0.06); color:var(--danger);
+  border-radius:10px; font-size:13px; display:none; border:1px solid rgba(248,113,113,0.1);
+}
+.parse-error.show { display:block; }
+.clear-btn {
+  position:absolute; top:60px; right:40px; width:26px; height:26px;
+  border-radius:50%; border:none; background:var(--border);
+  color:var(--ink-3); cursor:pointer; font-size:15px; display:none;
+  align-items:center; justify-content:center; transition:all .15s ease; z-index:1;
+}
+.clear-btn.show { display:flex; }
+.clear-btn:hover { background:var(--danger); color:#fff; }
+
+/* Tag */
+.tag-bar { display:flex; align-items:center; gap:12px; margin-bottom:28px; flex-wrap:wrap; }
+.tag {
+  font-size:12px; color:var(--accent); background:var(--accent-dim);
+  padding:5px 12px; border-radius:8px; border:1px solid var(--accent-border);
+}
+
+/* KPI grid - 4 cards */
+.kpi-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;
+}
+.kpi {
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:22px 24px; transition:all .2s ease;
+}
+.kpi:hover { border-color:var(--border-hover); transform:translateY(-2px); }
+.kpi--primary { border-color:var(--accent-border); background:var(--accent-dim); }
+.kpi--primary .kpi-label { color:var(--accent); }
+.kpi--primary .kpi-value { color:var(--accent); }
+.kpi-label {
+  font-size:11px; font-weight:600; color:var(--ink-3);
+  margin-bottom:8px; text-transform:uppercase; letter-spacing:0.08em;
+  display:flex; align-items:center; gap:5px;
+}
+.kpi-value {
+  font-size:24px; font-weight:700; color:var(--ink);
+  line-height:1.15; letter-spacing:-0.02em;
+}
+.kpi-sub { font-size:12px; color:var(--ink-3); margin-top:6px; }
+.kpi-change { font-size:11px; font-weight:600; margin-top:4px; display:inline-flex; align-items:center; gap:3px; }
+.kpi-change.up { color:var(--danger); }
+.kpi-change.down { color:var(--success); }
+.kpi-change.neutral { color:var(--ink-3); }
+
+/* Section */
+.section { margin-bottom:32px; }
+.section-hd {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px; flex-wrap:wrap; gap:10px;
+}
+.section-title { font-size:16px; font-weight:700; color:var(--ink); }
+.section-aux { font-size:13px; color:var(--ink-3); }
+.section-actions { display:flex; align-items:center; gap:10px; }
+
+/* Chart panels */
+.chart-panel {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:24px 28px; margin-bottom:16px; transition:border-color .2s ease;
+}
+.chart-panel:hover { border-color:var(--border-hover); }
+.chart-panel-title {
+  font-size:13px; font-weight:600; color:var(--ink-2);
+  margin-bottom:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.chart-legend {
+  font-size:12px; color:var(--ink-3); margin-top:10px; padding:8px 12px;
+  background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--border);
+}
+.chart-label { font-size:13px; color:var(--ink-2); margin-bottom:16px; }
+.chart-label strong { color:var(--ink); font-weight:600; }
+
+/* Usage card */
+.usage-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:24px 28px; margin-bottom:16px;
+}
+.usage-card-title { font-size:15px; font-weight:600; color:var(--ink); margin-bottom:20px; }
+.usage-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+.usage-stat { margin-bottom:14px; }
+.usage-stat .stat-label { font-size:12px; color:var(--ink-3); margin-bottom:4px; }
+.usage-stat .stat-value { font-size:20px; font-weight:600; color:var(--ink); }
+
+/* Table */
+.table-panel {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  max-height:520px; overflow:auto; -webkit-overflow-scrolling:touch;
+}
+table { width:100%; border-collapse:collapse; font-size:13px; min-width:800px; }
+th {
+  background:var(--surface-raised); text-align:left; padding:12px 16px; font-weight:600;
+  color:var(--ink-3); font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
+  white-space:nowrap; border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:1; cursor:pointer; user-select:none;
+}
+th:hover { background:#222; }
+th .sort-icon { margin-left:4px; font-size:10px; }
+td {
+  padding:11px 16px; border-bottom:1px solid var(--border);
+  color:var(--ink-2); transition:background .15s ease;
+}
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,0.02); }
+
+@keyframes rowFlash {
+  0% { background:rgba(245,166,35,0.06); }
+  100% { background:transparent; }
+}
+tr.row-new td { animation:rowFlash 1.5s ease; }
+tr.row-alert td { background:rgba(248,113,113,0.03); }
+
+.badge {
+  display:inline-flex; align-items:center; padding:3px 10px;
+  border-radius:12px; font-size:10px; font-weight:700;
+  letter-spacing:0.04em; text-transform:uppercase; cursor:help;
+}
+.badge-high { background:rgba(248,113,113,0.08); color:var(--danger); border:1px solid rgba(248,113,113,0.12); }
+.badge-mid { background:rgba(245,166,35,0.08); color:var(--accent); border:1px solid rgba(245,166,35,0.12); }
+.badge-low { background:rgba(74,222,128,0.08); color:var(--success); border:1px solid rgba(74,222,128,0.12); }
+
+.delete-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:8px; color:var(--ink-3);
+  cursor:pointer; font-size:16px; transition:all .15s ease;
+  background:none; border:1px solid transparent;
+}
+.delete-btn:hover { color:var(--danger); background:rgba(248,113,113,0.06); border-color:rgba(248,113,113,0.1); }
+
+.empty-msg { text-align:center; padding:64px 24px; color:var(--ink-3); }
+.empty-msg p { margin-bottom:6px; }
+.empty-msg p:first-child { font-size:15px; color:var(--ink-2); font-weight:500; }
+.empty-msg p:last-child { font-size:13px; }
+
+/* Footer */
+.footer {
+  margin-top:48px; padding-top:20px; border-top:1px solid var(--border);
+  font-size:12px; color:var(--ink-3); display:flex; justify-content:space-between;
+}
+
+/* Gist setup */
+.gist-setup { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:flex; align-items:center; justify-content:center; }
+.gist-setup-card { position:relative; width:min(480px,92vw); background:var(--surface); border-radius:16px; border:1px solid var(--border); padding:32px 28px 28px; }
+.gist-setup-hd h3 { font-size:18px; font-weight:700; color:var(--ink); margin:0 0 8px; }
+.gist-setup-hd p { font-size:13px; color:var(--ink-3); margin:0; }
+.gist-setup-body { margin-top:20px; }
+.gist-setup-steps { background:var(--accent-dim); border-radius:10px; padding:14px 16px; margin-bottom:16px; border:1px solid var(--accent-border); }
+.gist-setup-steps p { font-size:13px; color:var(--ink-2); margin:6px 0; }
+.gist-setup-steps a { color:var(--accent); }
+.gist-setup-input { display:flex; gap:10px; }
+.gist-setup-input input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:13px; font-family:monospace; outline:none; background:var(--bg); color:var(--ink); transition:border-color .2s; }
+.gist-setup-input input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,0.08); }
+.gist-setup-input .btn { flex-shrink:0; }
+.gist-setup-msg { margin-top:10px; font-size:12px; min-height:18px; }
+.gist-setup-msg.success { color:var(--success); }
+.gist-setup-msg.error { color:var(--danger); }
+.gist-setup-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:22px; color:var(--ink-3); cursor:pointer; line-height:1; padding:4px 8px; border-radius:8px; }
+.gist-setup-close:hover { color:var(--ink-2); background:var(--surface-hover); }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:32px; left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:#1a1a1a; color:var(--ink); padding:12px 28px;
+  border-radius:12px; font-size:13px; font-weight:500;
+  opacity:0; pointer-events:none; z-index:100;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  transition:opacity .28s ease, transform .28s ease;
+  max-width:90vw; white-space:normal; word-break:break-word;
+  text-align:center; border:1px solid var(--border);
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* Confirm dialog */
+.confirm-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200;
+  display:flex; align-items:center; justify-content:center;
+}
+.confirm-card {
+  background:var(--surface); border-radius:16px; padding:28px;
+  max-width:400px; width:90vw; border:1px solid var(--border);
+}
+.confirm-card h4 { font-size:16px; font-weight:600; color:var(--ink); margin-bottom:8px; }
+.confirm-card p { font-size:13px; color:var(--ink-3); margin-bottom:24px; line-height:1.5; }
+.confirm-actions { display:flex; gap:10px; justify-content:flex-end; }
+
+/* ===== Gamification (dark theme) ===== */
+.game-panel { padding: 24px 28px; }
+
+/* Top row: rank + stats */
+.gm-top {
+  display: flex; align-items: stretch; gap: 24px;
+}
+.gm-rank-card {
+  display: flex; flex-direction: column; gap: 14px;
+  min-width: 220px; flex-shrink: 0;
+}
+.gm-rank-badge {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border-radius: 14px; border: 1.5px solid;
+  width: fit-content;
+}
+.gm-rank-icon { font-size: 32px; line-height: 1; }
+.gm-rank-name {
+  font-size: 20px; font-weight: 700; line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.gm-rank-sub {
+  font-size: 12px; color: var(--ink-3); margin-top: 2px;
+}
+
+/* Progress bar */
+.gm-prog-area { display: flex; flex-direction: column; gap: 6px; }
+.gm-prog-meta {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--ink-3);
+}
+.gm-prog-pct { font-weight: 600; }
+.gm-prog-track {
+  height: 5px; background: var(--border); border-radius: 99px;
+  overflow: hidden;
+}
+.gm-prog-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 1s cubic-bezier(.16,1,.3,1);
+}
+
+/* Stats row */
+.gm-stats-row {
+  flex: 1; display: flex; align-items: center; justify-content: flex-end;
+  gap: 0; background: var(--surface-raised); border-radius: 14px;
+  border: 1px solid var(--border); padding: 0 12px;
+}
+.gm-stat {
+  flex: 1; text-align: center; padding: 18px 10px;
+}
+.gm-stat-val {
+  font-size: 28px; font-weight: 700; color: var(--ink);
+  line-height: 1.1; letter-spacing: -0.02em;
+}
+.gm-stat-val--sm {
+  font-size: 15px; font-weight: 600; line-height: 1.8;
+}
+.gm-stat-unit { font-size: 13px; font-weight: 400; color: var(--ink-3); }
+.gm-stat-lbl {
+  font-size: 12px; color: var(--ink-3); margin-top: 4px;
+}
+.gm-stat-div {
+  width: 1px; height: 40px; background: var(--border); flex-shrink: 0;
+}
+
+/* Separator */
+.gm-sep {
+  height: 1px; background: var(--border); margin: 20px 0;
+}
+
+/* Badge wall */
+.gm-bdg-hd {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+}
+.gm-bdg-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.gm-bdg-sub { font-size: 12px; color: var(--ink-3); }
+.gm-bdg-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;
+}
+.gm-bdg {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  padding: 14px 6px 12px; border-radius: 12px; cursor: default;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.gm-bdg--on {
+  background: var(--surface-raised);
+  border-color: var(--accent-border);
+  box-shadow: 0 1px 6px rgba(245,166,35,0.06);
+}
+.gm-bdg--on:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.1);
+  border-color: var(--accent-border);
+}
+.gm-bdg--off {
+  background: var(--surface);
+  border-color: var(--border);
+  filter: grayscale(1); opacity: .3;
+}
+.gm-bdg-icon { font-size: 24px; line-height: 1; }
+.gm-bdg-name {
+  font-size: 11px; text-align: center; line-height: 1.3;
+  color: var(--ink-2); font-weight: 500;
+}
+.gm-bdg--on .gm-bdg-name { color: var(--ink); font-weight: 600; }
+.gm-bdg-dot {
+  position: absolute; top: 8px; right: 8px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 4px rgba(245,166,35,0.5);
+}
+@keyframes gmPop {
+  0%   { transform: scale(.5); opacity: 0; }
+  65%  { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.gm-bdg--on { animation: gmPop .35s cubic-bezier(.34,1.56,.64,1) backwards; }
+
+/* Hamster */
+.gm-hamster {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(245,166,35,0.04); border-radius: 14px;
+  padding: 14px 18px; border: 1px solid var(--accent-border);
+}
+.gm-hm-av {
+  font-size: 28px; line-height: 1.2; flex-shrink: 0;
+  animation: gmHm .9s ease-in-out infinite alternate;
+}
+@keyframes gmHm {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-3px); }
+}
+.gm-hm-bubble { display: flex; flex-direction: column; gap: 2px; }
+.gm-hm-name {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  letter-spacing: .03em; text-transform: uppercase;
+}
+.gm-hm-txt {
+  font-size: 14px; line-height: 1.65; color: var(--ink-2);
+}
+
+/* Responsive */
+@media (max-width:900px) {
+  .gm-bdg-grid { grid-template-columns: repeat(4, 1fr); }
+  .gm-top { flex-direction: column; }
+  .gm-stats-row { justify-content: flex-start; }
+}
+@media (max-width:640px) {
+  .gm-bdg-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .gm-rank-icon { font-size: 24px; }
+  .gm-rank-name { font-size: 16px; }
+  .gm-stat-val { font-size: 20px; }
+}
+@media (max-width:400px) {
+  .gm-bdg-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .gm-bdg { padding: 10px 4px 8px; }
+  .gm-bdg-icon { font-size: 20px; }
+}
+
+@media (max-width:900px) {
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .summary-bar { grid-template-columns:1fr; }
+}
+@media (max-width:640px) {
+  .page { padding:24px 16px 40px; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .kpi { padding:18px 16px; }
+  .kpi-value { font-size:20px; }
+  .chart-row { grid-template-columns:1fr; }
+  .usage-grid { grid-template-columns:1fr; }
+  .summary-value { font-size:28px; }
+  .actions-bar { flex-direction:column; align-items:stretch; }
+  .input-card { padding:18px 20px; }
+  th, td { padding:9px 12px; font-size:12px; }
+}
+@media (max-width:400px) {
+  .kpi-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  .kpi { padding:14px 12px; }
+  .kpi-value { font-size:18px; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  .kpi:hover, .chart-panel:hover, .btn:hover { transform:none; }
+}
+
+@media print {
+  .actions-bar, .input-section, .delete-btn, .clear-btn, .toast, .confirm-overlay, .gist-setup { display:none !important; }
+  .page { max-width:100%; padding:0; }
+  .chart-panel, .table-panel, .kpi, .summary-item { break-inside:avoid; box-shadow:none; border:1px solid #333; }
+  body { background:#0a0a0a; }
+}
+
+/* ===== Budget & Prediction ===== */
+.budget-row { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.budget-input {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 14px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface); font-size:13px; color:var(--ink-2);
+}
+.budget-input input {
+  width:70px; background:transparent; border:none; color:var(--ink);
+  font-size:14px; font-weight:600; font-family:inherit; text-align:right;
+  outline:none;
+}
+.budget-input input::placeholder { color:var(--ink-3); }
+.budget-tag {
+  font-size:12px; padding:4px 10px; border-radius:8px; font-weight:600;
+}
+.budget-tag.ok { color:var(--green); background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.15); }
+.budget-tag.warn { color:var(--warning); background:rgba(245,166,35,.08); border:1px solid rgba(245,166,35,.15); }
+.budget-tag.danger { color:var(--danger); background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.15); }
+
+/* Prediction card */
+.pred-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:20px 24px; margin-bottom:16px;
+}
+.pred-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.pred-item { text-align:center; }
+.pred-val { font-size:22px; font-weight:700; color:var(--ink); line-height:1.2; }
+.pred-val.up { color:var(--danger); }
+.pred-val.down { color:var(--green); }
+.pred-lbl { font-size:12px; color:var(--ink-3); margin-top:4px; }
+
+/* Suggestions */
+.suggest-list { display:flex; flex-direction:column; gap:10px; }
+.suggest-item {
+  display:flex; align-items:flex-start; gap:12px;
+  background:var(--surface-raised); border-radius:12px;
+  padding:14px 18px; border:1px solid var(--border);
+}
+.suggest-icon { font-size:20px; line-height:1; flex-shrink:0; margin-top:1px; }
+.suggest-text { font-size:13px; color:var(--ink-2); line-height:1.6; }
+.suggest-text strong { color:var(--ink); }
+
+/* Weather scatter */
+.weather-meta { display:flex; gap:16px; margin-bottom:12px; flex-wrap:wrap; }
+.weather-chip {
+  font-size:12px; color:var(--ink-3); background:rgba(255,255,255,.02);
+  padding:5px 12px; border-radius:8px; border:1px solid var(--border);
+}
+
+/* Share */
+.share-btn { border-color:var(--accent-border); color:var(--accent); background:var(--accent-dim); }
+.share-btn:hover { background:rgba(245,166,35,0.12); }
+
+/* Anomaly marker on chart */
+.anomaly-label {
+  display:inline-block; background:rgba(248,113,113,.12); color:var(--danger);
+  font-size:11px; font-weight:600; padding:2px 8px; border-radius:6px;
+  white-space:nowrap; margin-left:6px; border:1px solid rgba(248,113,113,.18);
+  vertical-align:middle;
+}
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .page { padding: 24px 16px 48px; }
+  .page-title { font-size: 22px; }
+  .summary-bar { grid-template-columns: 1fr; }
+  .summary-value { font-size: 28px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi { padding: 16px; }
+  .kpi-value { font-size: 20px; }
+  .chart-row { grid-template-columns: 1fr; }
+  .usage-grid { grid-template-columns: 1fr; gap: 16px; }
+  .actions-bar { flex-direction: column; align-items: stretch; }
+  .actions-left, .actions-right { justify-content: flex-start; }
+  .pred-grid { grid-template-columns: 1fr; }
+  .gm-bdg-grid { grid-template-columns: repeat(4, 1fr); }
+  .gm-top { flex-direction: column; gap: 16px; }
+  .year-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .tier-body { flex-direction: column; }
+  .compare-row { flex-direction: column; align-items: stretch !important; }
+  .table-panel { border-radius: 12px; }
+  table { font-size: 12px; min-width: 700px; }
+  th, td { padding: 8px 10px; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .gm-bdg-grid { grid-template-columns: repeat(3, 1fr); }
+  .year-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ===== Year Summary ===== */
+.year-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; margin-bottom: 16px; }
+.year-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.year-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+.year-tag { font-size: 12px; color: var(--ink-3); background: rgba(255,255,255,.02); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); }
+.year-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.year-item { text-align: center; }
+.year-val { font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.year-val.up { color: var(--danger); }
+.year-val.down { color: var(--success); }
+.year-lbl { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.year-div { width: 1px; background: var(--border); }
+.year-foot { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--ink-3); display: flex; gap: 16px; flex-wrap: wrap; }
+
+/* ===== Tier Analysis ===== */
+.tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; margin-bottom: 16px; }
+.tier-body { display: flex; gap: 24px; align-items: stretch; }
+.tier-left { flex: 1; min-width: 0; }
+.tier-right { width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+.tier-title { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 10px; }
+.tier-track { height: 28px; border-radius: 8px; background: var(--surface-raised); border: 1px solid var(--border); position: relative; overflow: hidden; margin-bottom: 8px; }
+.tier-fill { height: 100%; border-radius: 7px; transition: width .6s ease; position: relative; }
+.tier-fill.t1 { background: linear-gradient(90deg, rgba(74,222,128,.25), rgba(74,222,128,.15)); }
+.tier-fill.t2 { background: linear-gradient(90deg, rgba(245,166,35,.25), rgba(245,166,35,.15)); }
+.tier-fill.t3 { background: linear-gradient(90deg, rgba(248,113,113,.25), rgba(248,113,113,.15)); }
+.tier-needle { position: absolute; top: -4px; width: 3px; height: 36px; background: var(--ink); border-radius: 2px; transform: translateX(-50%); transition: left .6s ease; box-shadow: 0 0 6px rgba(255,255,255,.15); }
+.tier-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-bottom: 14px; }
+.tier-info { background: var(--surface-raised); border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); }
+.tier-info-label { font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+.tier-info-val { font-size: 16px; font-weight: 700; color: var(--ink); }
+.tier-info-sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.tier-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 8px; }
+.tier-badge.t1 { color: var(--success); background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.12); }
+.tier-badge.t2 { color: var(--warning); background: rgba(245,166,35,.08); border: 1px solid rgba(245,166,35,.12); }
+.tier-badge.t3 { color: var(--danger); background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.12); }
+
+/* ===== Compare Mode ===== */
+.compare-bar { display: none; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; }
+.compare-bar.show { display: flex; }
+.compare-label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.compare-select { padding: 6px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px; outline: none; min-width: 100px; }
+.compare-select:focus { border-color: var(--accent); }
+.compare-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.compare-panel { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; }
+.compare-panel-title { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 12px; }
+.compare-diff { font-size: 24px; font-weight: 700; color: var(--ink); }
+.compare-diff.up { color: var(--danger); }
+.compare-diff.down { color: var(--success); }
+.compare-diff-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.compare-list { display: flex; flex-direction: column; gap: 8px; }
+.compare-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 12px; background: var(--surface-raised); border-radius: 8px; border: 1px solid var(--border); }
+.compare-item-label { color: var(--ink-2); }
+.compare-item-val { font-weight: 600; color: var(--ink); }
+.compare-item-val.up { color: var(--danger); }
+.compare-item-val.down { color: var(--success); }
+
+/* Table highlight for chart interaction */
+tr.row-highlight td { background: rgba(245,166,35,.06) !important; }
+
+@media print {
+  .actions-bar, .input-section, .delete-btn, .clear-btn, .toast, .confirm-overlay, .gist-setup, .compare-bar { display:none !important; }
+  .page { max-width:100%; padding:0; }
+  .chart-panel, .table-panel, .kpi, .summary-item { break-inside:avoid; box-shadow:none; border:1px solid #333; }
+  body { background:#0a0a0a; }
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">用量信息</h1>
+    <p class="page-subtitle">天骄时代城 F3-2403 · 物业账单数据仪表盘</p>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions-bar">
+    <div class="actions-left">
+      <button class="btn btn-accent" onclick="exportCSV()">↧ 导出 CSV</button>
+      <button class="btn" id="importBtn">导入 CSV</button>
+      <button class="btn" onclick="printReport()">打印报表</button>
+      <button class="btn share-btn" onclick="generateShareCard()">📤 生成分享图</button>
+      <button class="btn" onclick="toggleCompareMode()">🔍 对比模式</button>
+    </div>
+    <div class="actions-right">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--ink-3);">月度预算</span>
+        <div class="budget-input" style="width:110px;">
+          <input type="number" id="budgetInput" placeholder="¥500" style="width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--ink);font-family:inherit;font-size:13px;outline:none;" onchange="saveBudget()" oninput="updateBudgetPreview()">
+        </div>
+        <span id="budgetTag" class="budget-tag ok" style="display:none;">预算内</span>
+      </div>
+      <button class="btn btn-danger" onclick="clearAll()">清空数据</button>
+    </div>
+  </div>
+
+  <!-- Compare Mode Bar -->
+  <div class="compare-bar" id="compareBar">
+    <span class="compare-label">🔍 月份对比</span>
+    <select class="compare-select" id="compareA"></select>
+    <span style="color:var(--ink-3);font-size:13px;">vs</span>
+    <select class="compare-select" id="compareB"></select>
+    <button class="btn btn-accent" onclick="updateCompareView()">对比</button>
+    <button class="btn" onclick="toggleCompareMode()">关闭</button>
+  </div>
+
+  <!-- Compare Result -->
+  <div class="section" id="compareSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">📊 月份对比分析</h2>
+      <span class="section-aux" id="compareAux"></span>
+    </div>
+    <div class="compare-row">
+      <div class="compare-panel">
+        <div class="compare-panel-title">总费用差异</div>
+        <div class="compare-diff" id="compareTotalDiff">—</div>
+        <div class="compare-diff-sub" id="compareTotalSub"></div>
+      </div>
+      <div class="compare-panel">
+        <div class="compare-panel-title">用电差异</div>
+        <div class="compare-diff" id="compareElecDiff">—</div>
+        <div class="compare-diff-sub" id="compareElecSub"></div>
+      </div>
+    </div>
+    <div class="chart-panel">
+      <div class="compare-panel-title">费用拆解对比</div>
+      <div class="compare-list" id="compareList"></div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-section">
+    <div class="input-card">
+      <label for="smsInput">粘贴物业账单短信</label>
+      <textarea id="smsInput" placeholder="示例：天骄时代城F3-2403，2026年6月，实用水量12吨，水费35元，实用电量280度，电费420元，公摊电费15元，管理费120元，总费用590元"></textarea>
+      <button class="clear-btn" onclick="clearSmsInput()" title="清除内容" aria-label="清除短信内容">&times;</button>
+      <div class="parse-error" id="parseError"></div>
+      <div class="input-row">
+        <button class="btn btn-accent" onclick="startParse()" id="parseBtn">提取并添加</button>
+        <span class="input-hint">粘贴后按 Ctrl + Enter 快捷添加</span>
+        <span class="input-shortcut">Ctrl + Enter</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-bar" id="summarySection">
+    <div class="summary-item primary">
+      <div class="summary-label">累计总费用</div>
+      <div class="summary-value" id="totalCostValue">&mdash;</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">最近一月消费 <span id="latestMonthLabel" style="color:var(--ink-3);"></span></div>
+      <div class="summary-value" id="latestCostValue">&mdash;</div>
+    </div>
+  </div>
+
+  <div class="tag-bar">
+    <span class="tag" id="recordTag">0 条记录</span>
+    <span id="budgetStatusTag" style="display:none;"></span>
+    <span id="predictionTag" style="display:none;"></span>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-grid" id="kpiGrid" aria-live="polite">
+    <div class="kpi kpi--primary">
+      <div class="kpi-label">累计总费用</div>
+      <div class="kpi-value">&mdash;</div>
+      <div class="kpi-sub">0 个月合计</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">月均总费用</div>
+      <div class="kpi-value">&mdash;</div>
+      <div class="kpi-sub">各月平均</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">累计用电量</div>
+      <div class="kpi-value">&mdash;</div>
+      <div class="kpi-sub">0 度</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">电费占比</div>
+      <div class="kpi-value">&mdash;</div>
+      <div class="kpi-sub">占总费用</div>
+    </div>
+  </div>
+
+  <!-- Year Summary -->
+  <div class="section" id="yearSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">📅 年度总览</h2>
+      <span class="section-aux" id="yearAux"></span>
+    </div>
+    <div class="year-card">
+      <div class="year-hd">
+        <span class="year-title" id="yearTitle">2025 年度账单</span>
+        <span class="year-tag" id="yearTag">6 个月数据</span>
+      </div>
+      <div class="year-grid">
+        <div class="year-item">
+          <div class="year-val" id="yearTotal">—</div>
+          <div class="year-lbl">年度总费用</div>
+        </div>
+        <div class="year-item">
+          <div class="year-val" id="yearAvg">—</div>
+          <div class="year-lbl">月均费用</div>
+        </div>
+        <div class="year-item">
+          <div class="year-val" id="yearElec">—</div>
+          <div class="year-lbl">年度用电</div>
+        </div>
+        <div class="year-item">
+          <div class="year-val" id="yearCarbon">—</div>
+          <div class="year-lbl">碳排放估算</div>
+        </div>
+      </div>
+      <div class="year-foot">
+        <span id="yearPeak">用电高峰月：—</span>
+        <span id="yearLow">用电最低月：—</span>
+        <span id="yearYoy">同比：—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prediction -->
+  <div class="section" id="predictionSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">🔮 费用预测</h2>
+      <span class="section-aux">基于近 6 个月线性趋势</span>
+    </div>
+    <div class="pred-card">
+      <div class="pred-grid" id="predictionGrid">
+        <div class="pred-item">
+          <div class="pred-val" id="predNext">—</div>
+          <div class="pred-lbl">预测下月总费用</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-val" id="predTrend">—</div>
+          <div class="pred-lbl">月均环比趋势</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-val" id="predBudget">—</div>
+          <div class="pred-lbl">预算余量</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Usage -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">每月用量</h2>
+      <div class="section-actions">
+        <button class="btn" onclick="showToast('月份筛选功能开发中')">全部月份</button>
+        <button class="btn" onclick="exportCSV()">导出</button>
+      </div>
+    </div>
+    <div class="chart-panel">
+      <div class="chart-label">消费金额 <strong id="currentTotal">&mdash;</strong></div>
+      <div style="position:relative;width:100%;height:280px;">
+        <canvas id="trendChart" role="img" aria-label="月度总费用趋势柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Water & Elec -->
+  <div class="usage-card">
+    <div class="usage-card-title">用水与用电</div>
+    <div class="usage-grid">
+      <div>
+        <div class="usage-stat">
+          <div class="stat-label">累计用水量</div>
+          <div class="stat-value" id="waterTotal">&mdash;</div>
+        </div>
+        <div style="position:relative;width:100%;height:200px;">
+          <canvas id="waterChart" role="img" aria-label="各月用水量柱状图"></canvas>
+        </div>
+      </div>
+      <div>
+        <div class="usage-stat">
+          <div class="stat-label">累计用电量</div>
+          <div class="stat-value" id="elecTotal">&mdash;</div>
+        </div>
+        <div style="position:relative;width:100%;height:200px;">
+          <canvas id="elecChart" role="img" aria-label="各月用电量柱状图"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamification -->
+  <div class="section" id="gamificationSection" style="margin-top:24px;">
+    <div class="section-hd">
+      <h2 class="section-title">🎮 节能闯关档案</h2>
+    </div>
+    <div class="chart-panel game-panel" id="gamePanel">
+      <div class="empty-msg" id="gameEmpty">
+        <p>暂无数据</p>
+        <p>添加账单后解锁徽章与段位</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Smart Suggestions -->
+  <div class="section" id="suggestSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">💡 智能省电建议</h2>
+      <span class="section-aux">基于您的用电数据自动生成</span>
+    </div>
+    <div class="chart-panel">
+      <div class="suggest-list" id="suggestList"></div>
+    </div>
+  </div>
+
+  <!-- Weather Correlation -->
+  <div class="section" id="weatherSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">🌤️ 气温与用电量关联</h2>
+      <span class="section-aux">Open-Meteo 历史天气数据</span>
+    </div>
+    <div class="chart-panel">
+      <div class="weather-meta" id="weatherMeta"></div>
+      <div style="position:relative;width:100%;height:300px;">
+        <canvas id="weatherChart" role="img" aria-label="月均气温与用电量散点图"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tier Analysis -->
+  <div class="section" id="tierSection" style="display:none;">
+    <div class="section-hd">
+      <h2 class="section-title">⚡ 广州阶梯电价分析</h2>
+      <span class="section-aux">夏季(5-10月)与非夏季档位不同</span>
+    </div>
+    <div class="tier-card">
+      <div class="tier-body">
+        <div class="tier-left">
+          <div class="tier-title">最新账单（<span id="tierMonth">—</span>）<span id="tierBadge" class="tier-badge" style="margin-left:8px;">—</span></div>
+          <div class="tier-track" id="tierTrack">
+            <div class="tier-fill" id="tierFill" style="width:0%"></div>
+            <div class="tier-needle" id="tierNeedle" style="left:0%"></div>
+          </div>
+          <div class="tier-meta">
+            <span id="tierMetaStart">0 度</span>
+            <span id="tierMetaMid">—</span>
+            <span id="tierMetaEnd">—</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink-3);line-height:1.7;">
+            <div id="tierNextInfo">距离下一档还剩 — 度</div>
+            <div id="tierCostInfo">若再涨 100 度，约多花 — 元</div>
+          </div>
+        </div>
+        <div class="tier-right">
+          <div class="tier-info">
+            <div class="tier-info-label">当月用电量</div>
+            <div class="tier-info-val" id="tierUsage">—</div>
+            <div class="tier-info-sub">度</div>
+          </div>
+          <div class="tier-info">
+            <div class="tier-info-label">当前档位单价</div>
+            <div class="tier-info-val" id="tierPrice">—</div>
+            <div class="tier-info-sub">元/度</div>
+          </div>
+          <div class="tier-info">
+            <div class="tier-info-label">阶梯加价</div>
+            <div class="tier-info-val" id="tierExtra">—</div>
+            <div class="tier-info-sub">元</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pie & Unit -->
+  <div class="section" style="margin-top:24px;">
+    <div class="section-hd">
+      <h2 class="section-title">费用构成与电价</h2>
+    </div>
+    <div class="chart-row">
+      <div class="chart-panel">
+        <div class="chart-panel-title">累计费用占比</div>
+        <div style="position:relative;width:100%;height:240px;"><canvas id="pieChart" role="img" aria-label="累计费用占比饼图"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">电价单价趋势（元/度）</div>
+        <div style="position:relative;width:100%;height:240px;"><canvas id="unitChart" role="img" aria-label="电价单价趋势折线图"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YoY -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">同比对比（按月份）</h2>
+    </div>
+    <div class="chart-panel">
+      <div style="position:relative;width:100%;height:280px;">
+        <canvas id="yoyChart" role="img" aria-label="各年度同月费用同比对比柱状图"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meter -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">水电表累计读数</h2>
+    </div>
+    <div class="chart-panel">
+      <div style="position:relative;width:100%;height:260px;">
+        <canvas id="meterChart" role="img" aria-label="电表与水表累计读数折线图"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="section">
+    <div class="section-hd">
+      <h2 class="section-title">账单明细</h2>
+      <span class="section-aux" id="tableCount"></span>
+    </div>
+    <div class="table-panel" id="tableWrap">
+      <div class="empty-msg">
+        <p>暂无数据</p>
+        <p>粘贴物业短信后自动添加</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>F3-2403 天骄时代城</span>
+    <span id="syncStatus" style="cursor:pointer" title="点击设置 GitHub 同步" onclick="toggleGistSetup()">连接中&hellip;</span>
+  </div>
+
+  <!-- Share Card Modal -->
+  <div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;max-width:420px;width:100%;padding:24px;position:relative;">
+      <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;">分享账单卡片</h3>
+      <div id="shareCardContainer" style="border-radius:14px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border);"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn" onclick="document.getElementById('shareModal').style.display='none'">关闭</button>
+        <button class="btn btn-accent" onclick="downloadShareCard()">⬇ 下载图片</button>
+      </div>
+      <button onclick="document.getElementById('shareModal').style.display='none'" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:none;background:var(--border);color:var(--ink-3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">&times;</button>
+    </div>
+  </div>
+
+  <!-- Gist Setup -->
+  <div id="gistSetup" class="gist-setup" style="display:none;">
+    <div class="gist-setup-card">
+      <div class="gist-setup-hd">
+        <h3>GitHub Gist 数据同步</h3>
+        <p>数据存储在您的 GitHub Gist 中，换电脑自动同步。</p>
+      </div>
+      <div class="gist-setup-body">
+        <div class="gist-setup-steps">
+          <p><strong>获取 Token：</strong><a href="https://github.com/settings/tokens/new?scopes=gist&description=物业账单助手" target="_blank" rel="noopener noreferrer">创建新 Token</a>（勾选 gist 权限），粘贴到下方</p>
+        </div>
+        <div class="gist-setup-input">
+          <input type="password" id="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" aria-label="GitHub Personal Access Token">
+          <button class="btn btn-accent" onclick="setupGist()">连接 Gist</button>
+        </div>
+        <p id="gistSetupMsg" class="gist-setup-msg"></p>
+      </div>
+      <button class="gist-setup-close" onclick="toggleGistSetup()" aria-label="关闭设置面板">&times;</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="confirmDialog" style="display:none;"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+Chart.defaults.color = '#666';
+Chart.defaults.borderColor = '#2a2a2a';
+
+const GIST_API = 'https://api.github.com';
+const GIST_FILENAME = 'property-bills-f3-2403.json';
+const GIST_DESC = '天骄时代城F3-2403物业账单';
+
+function printReport() { window.print(); }
+
+function parseSMSText(text) {
+  function val(pat, src) { const m = src.match(pat); return m ? parseFloat(m[1]) : null; }
+  let year = null, monthNum = null;
+  const monthMatch = text.match(/(2\d{3})\s*[年\-\.]\s*(\d{1,2})/);
+  if (monthMatch) { year = parseInt(monthMatch[1], 10); monthNum = parseInt(monthMatch[2], 10); }
+  let month = '';
+  if (year && monthNum !== null) month = year + '-' + (monthNum < 10 ? '0' + monthNum : monthNum);
+  const waterUsage = val(/实用水量[：:\s]*(\d+\.?\d*)/, text);
+  const prevWater  = val(/实用水量[\s\S]*?上期读数[：:\s]*(\d+\.?\d*)/, text);
+  const currWater  = val(/实用水量[\s\S]*?本期读数[：:\s]*(\d+\.?\d*)/, text);
+  const shareWater = val(/公摊水费[：:\s]*(\d+\.?\d*)/, text);
+  const waterFee   = val(/[，,]\s*水费[：:\s]*(\d+\.?\d*)/, text) || val(/；\s*水费[：:\s]*(\d+\.?\d*)/, text);
+  const elecUsage = val(/实用电量[：:\s]*(\d+\.?\d*)/, text);
+  const prevElec  = val(/实用电量[\s\S]*?上期读数[：:\s]*(\d+\.?\d*)/, text);
+  const currElec  = val(/实用电量[\s\S]*?本期读数[：:\s]*(\d+\.?\d*)/, text);
+  const shareElec = val(/公摊电费[：:\s]*(\d+\.?\d*)/, text);
+  const elecFee   = val(/[，,]\s*电费[：:\s]*(\d+\.?\d*)/, text) || val(/；\s*电费[：:\s]*(\d+\.?\d*)/, text);
+  const mgmtFee = val(/管理费[：:\s]*(\d+\.?\d*)/, text);
+  const total = val(/总费用[：:\s]*(\d+\.?\d*)/, text) || val(/本期费用合[：:\s]*(\d+\.?\d*)/, text);
+  return { month, elecUsage, waterUsage, prevElec, currElec, prevWater, currWater, shareWater, waterFee, shareElec, elecFee, mgmtFee, total };
+}
+
+const STORAGE_KEY = 'property_bills_f3_2403';
+const CHART_COLORS = {
+  trend: '#f5a623', elec: '#f87171', water: '#4ade80',
+  mgmt: '#f5a623', share: '#a78bfa', unit: '#60a5fa'
+};
+
+let gistToken = null, gistId = null, gistOnline = false;
+function loadGistConfig() {
+  gistToken = localStorage.getItem('gist_token') || '';
+  gistId = localStorage.getItem('gist_id') || '';
+}
+function saveGistConfig() {
+  if (gistToken) localStorage.setItem('gist_token', gistToken); else localStorage.removeItem('gist_token');
+  if (gistId) localStorage.setItem('gist_id', gistId); else localStorage.removeItem('gist_id');
+}
+const ghHeaders = () => ({ 'Authorization': 'token ' + gistToken, 'Accept': 'application/vnd.github.v3+json' });
+
+async function gistFetchBills() {
+  const res = await fetch(GIST_API + '/gists/' + gistId, { headers: ghHeaders() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gist = await res.json();
+  const file = gist.files[GIST_FILENAME];
+  if (!file || !file.content) throw new Error('数据文件不存在');
+  return JSON.parse(file.content);
+}
+async function gistUpdateBills(data) {
+  const body = { files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } } };
+  const res = await fetch(GIST_API + '/gists/' + gistId, {
+    method: 'PATCH', headers: { ...ghHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+}
+async function gistCreate(data) {
+  const body = { description: GIST_DESC, public: false, files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } } };
+  const res = await fetch(GIST_API + '/gists', { method: 'POST', headers: { ...ghHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gist = await res.json(); gistId = gist.id; saveGistConfig();
+}
+async function gistFindExisting() {
+  const res = await fetch(GIST_API + '/gists?per_page=100', { headers: ghHeaders() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const gists = await res.json();
+  const found = gists.find(g => g.description === GIST_DESC && g.files && g.files[GIST_FILENAME]);
+  if (found) { gistId = found.id; saveGistConfig(); }
+  return found;
+}
+async function checkGistConnection() {
+  if (!gistToken) { gistOnline = false; return false; }
+  try { const res = await fetch(GIST_API + '/user', { headers: ghHeaders() }); gistOnline = res.ok; return res.ok; }
+  catch(e) { gistOnline = false; return false; }
+}
+
+let bills = [], charts = {}, lastAddedIdx = -1;
+let monthlyBudget = 0;
+try { monthlyBudget = parseFloat(localStorage.getItem('pb_budget') || '0') || 0; } catch(e) {}
+const weatherCache = {};
+
+function setSyncStatus(status, tooltip) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  gistOnline = (status === 'online');
+  const icons = { online: '●', offline: '○', syncing: '⌛' };
+  const labels = { online: 'Gist 已同步', offline: '未设置同步', syncing: '同步中…' };
+  el.innerHTML = '<span>' + icons[status] + '</span> ' + labels[status];
+  el.title = tooltip || ''; el.style.cursor = 'pointer';
+}
+
+async function loadData() {
+  loadGistConfig();
+  try { const d = localStorage.getItem(STORAGE_KEY); if (d) bills = JSON.parse(d); } catch(e) {}
+  if (!bills.length) bills = getDefaultData();
+  if (!gistToken) { setSyncStatus('offline', '点击配置 GitHub 同步'); showGistSetup(true); return; }
+  showGistSetup(false); setSyncStatus('syncing');
+  const online = await checkGistConnection();
+  if (!online) { setSyncStatus('offline', 'GitHub 连接失败，数据保存于本机'); return; }
+  try {
+    if (!gistId) await gistFindExisting();
+    if (gistId) {
+      const data = await gistFetchBills();
+      if (data && data.length > 0) { bills = data.map(normalizeBill); localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN')); return; }
+    }
+    await gistCreate(bills);
+    setSyncStatus('online', '已创建 Gist · ' + new Date().toLocaleString('zh-CN'));
+  } catch(e) { console.warn('Gist 连接失败:', e.message); setSyncStatus('offline', 'Gist 连接失败，使用本机存储'); }
+}
+
+function normalizeBill(b) {
+  return { month: b.month, total: b.total || 0, elecFee: b.elecFee || 0, waterFee: b.waterFee || 0, mgmtFee: b.mgmtFee || 0, shareElec: b.shareElec || 0, shareWater: b.shareWater || 0, elecUsage: b.elecUsage || 0, waterUsage: b.waterUsage || 0, prevElec: b.prevElec || null, currElec: b.currElec || null, prevWater: b.prevWater || null, currWater: b.currWater || null };
+}
+
+async function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); } catch(e) { showToast('本地存储已满，请导出数据后清理'); return; }
+  if (gistOnline && gistToken && gistId) {
+    try { await gistUpdateBills(bills.map(normalizeBill)); setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN')); }
+    catch(e) { console.warn('Gist 更新失败:', e.message); setSyncStatus('offline', '同步失败，数据已保存在本机'); }
+  }
+}
+
+function getDefaultData() { return []; }
+
+function startParse() {
+  const btn = document.getElementById('parseBtn');
+  btn.disabled = true; btn.textContent = '解析中…';
+  requestAnimationFrame(() => { setTimeout(doParse, 0); });
+}
+
+function doParse() {
+  const text = document.getElementById('smsInput').value.trim();
+  const btn = document.getElementById('parseBtn');
+  if (!text) { showParseError('请先粘贴物业短信'); btn.disabled = false; btn.textContent = '提取并添加'; return; }
+  const d = parseSMSText(text);
+  if (!d.month) { showParseError('未能识别月份，请检查短信格式'); btn.disabled = false; btn.textContent = '提取并添加'; return; }
+  if (bills.some(b => b.month === d.month)) { showParseError(d.month + ' 已存在，请先删除旧记录再添加'); btn.disabled = false; btn.textContent = '提取并添加'; return; }
+  if (d.total === null) { showParseError('未能提取到有效数据，请检查短信格式'); btn.disabled = false; btn.textContent = '提取并添加'; return; }
+  bills.push({ month: d.month, total: d.total, elecFee: d.elecFee || 0, waterFee: d.waterFee || 0, mgmtFee: d.mgmtFee || 0, shareElec: d.shareElec || 0, shareWater: d.shareWater || 0, elecUsage: d.elecUsage || 0, waterUsage: d.waterUsage || 0, prevElec: d.prevElec, currElec: d.currElec, prevWater: d.prevWater, currWater: d.currWater });
+  bills.sort((a,b) => a.month.localeCompare(b.month));
+  lastAddedIdx = bills.findIndex(b => b.month === d.month);
+  saveData();
+  document.getElementById('smsInput').value = '';
+  hideParseError();
+  btn.disabled = false; btn.textContent = '提取并添加';
+  render();
+  showToast('已添加 ' + d.month);
+}
+
+function showParseError(msg) { const el = document.getElementById('parseError'); el.textContent = msg; el.classList.add('show'); }
+function hideParseError() { const el = document.getElementById('parseError'); el.classList.remove('show'); }
+
+function clearSmsInput() { document.getElementById('smsInput').value = ''; hideParseError(); document.getElementById('smsInput').focus(); document.querySelector('.clear-btn').classList.remove('show'); }
+
+const _sms = document.getElementById('smsInput');
+const _clr = document.querySelector('.clear-btn');
+_sms.addEventListener('input', () => { _clr.classList.toggle('show', _sms.value.trim().length > 0); });
+
+function deleteRecord(idx) {
+  customConfirm('确认删除', '确认删除 ' + bills[idx].month + ' 的数据？', () => { bills.splice(idx, 1); saveData(); render(); showToast('已删除'); });
+}
+function clearAll() {
+  if (!bills.length) return;
+  customConfirm('确认清空', '确认清空所有数据？此操作不可恢复！', () => { bills = []; lastAddedIdx = -1; saveData(); render(); showToast('数据已全部清除'); });
+}
+
+function customConfirm(title, message, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `<div class="confirm-card" role="dialog" aria-modal="true"><h4 id="confirmTitle"></h4><p id="confirmMessage"></p><div class="confirm-actions"><button class="btn" onclick="this.closest('.confirm-overlay').remove()">取消</button><button class="btn btn-danger" id="confirmOk">确认</button></div></div>`;
+  overlay.querySelector('#confirmTitle').textContent = title;
+  overlay.querySelector('#confirmMessage').textContent = message;
+  document.body.appendChild(overlay);
+  const focusableElements = overlay.querySelectorAll('button');
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements[focusableElements.length - 1];
+  firstFocusable.focus();
+  overlay.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') overlay.remove();
+    if (e.key === 'Tab') { if (e.shiftKey) { if (document.activeElement === firstFocusable) { e.preventDefault(); lastFocusable.focus(); }} else { if (document.activeElement === lastFocusable) { e.preventDefault(); firstFocusable.focus(); }} }
+  });
+  overlay.querySelector('#confirmOk').addEventListener('click', () => { overlay.remove(); onConfirm(); });
+}
+
+function render() {
+  document.getElementById('recordTag').textContent = bills.length + ' 条记录';
+  document.getElementById('budgetInput').value = monthlyBudget || '';
+  if (!bills.length) {
+    document.querySelectorAll('#kpiGrid .kpi-value').forEach(el => el.textContent = '—');
+    document.querySelectorAll('.kpi .kpi-sub').forEach(el => el.textContent = '');
+    document.getElementById('tableWrap').innerHTML = '<div class="empty-msg"><p>暂无数据</p><p>粘贴物业短信后自动添加</p></div>';
+    Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
+    document.getElementById('tableCount').textContent = '';
+    document.getElementById('totalCostValue').innerHTML = '—';
+    document.getElementById('latestCostValue').innerHTML = '—';
+    document.getElementById('latestMonthLabel').textContent = '';
+    document.getElementById('currentTotal').textContent = '—';
+    document.getElementById('waterTotal').textContent = '—';
+    document.getElementById('elecTotal').textContent = '—';
+    document.getElementById('gamePanel').innerHTML = '<div class="empty-msg"><p>暂无数据</p><p>添加账单后解锁徽章与段位</p></div>';
+    document.getElementById('predictionSection').style.display = 'none';
+    document.getElementById('suggestSection').style.display = 'none';
+    document.getElementById('weatherSection').style.display = 'none';
+    return;
+  }
+  updateKPIs();
+  updateBalance();
+  updateBudgetPreview();
+  updatePrediction();
+  updateYearSummary();
+  updateTierAnalysis();
+  updateCompareOptions();
+  updateTable();
+  updateCharts();
+  updateGamification();
+  updateSuggestions();
+  updateWeather();
+}
+
+function updateBalance() {
+  const totalSum = bills.reduce((s,b) => s + b.total, 0);
+  const latest = bills[bills.length - 1];
+  document.getElementById('totalCostValue').innerHTML = '¥' + totalSum.toFixed(2) + '<span class="unit">CNY</span>';
+  document.getElementById('latestCostValue').innerHTML = '¥' + latest.total.toFixed(2) + '<span class="unit">CNY</span>';
+  document.getElementById('latestMonthLabel').textContent = '(' + latest.month + ')';
+  document.getElementById('currentTotal').textContent = '¥' + totalSum.toFixed(2);
+  const waterSum = bills.reduce((s,b) => s + (b.waterUsage||0), 0);
+  const elecSum = bills.reduce((s,b) => s + (b.elecUsage||0), 0);
+  document.getElementById('waterTotal').textContent = waterSum.toFixed(0) + ' 吨';
+  document.getElementById('elecTotal').textContent = elecSum.toFixed(0) + ' 度';
+}
+
+function updateKPIs() {
+  const totalSum = bills.reduce((s,b) => s + b.total, 0);
+  const avg = totalSum / bills.length;
+  const elecSum = bills.reduce((s,b) => s + (b.elecUsage||0), 0);
+  const elecFeeSum = bills.reduce((s,b) => s + b.elecFee, 0);
+  const elecPct = (elecFeeSum / totalSum * 100);
+  const latest = bills[bills.length - 1];
+  const prev = bills.length > 1 ? bills[bills.length - 2] : null;
+  const momChange = prev ? ((latest.total - prev.total) / prev.total * 100) : null;
+  function momHTML(change) {
+    if (change === null) return '';
+    if (Math.abs(change) < 0.5) return '<span class="kpi-change neutral">持平</span>';
+    const cls = change > 0 ? 'up' : 'down'; const arrow = change > 0 ? '▲' : '▼';
+    return '<span class="kpi-change ' + cls + '">' + arrow + ' ' + Math.abs(change).toFixed(1) + '%</span>';
+  }
+  const cells = document.querySelectorAll('#kpiGrid .kpi');
+  if (cells.length >= 4) {
+    cells[0].querySelector('.kpi-value').textContent = '¥' + totalSum.toFixed(0);
+    cells[0].querySelector('.kpi-sub').innerHTML = bills.length + ' 个月合计 ' + momHTML(momChange);
+    cells[1].querySelector('.kpi-value').textContent = '¥' + avg.toFixed(0);
+    cells[1].querySelector('.kpi-sub').textContent = '各月平均';
+    cells[2].querySelector('.kpi-value').textContent = elecSum.toFixed(0) + ' 度';
+    cells[2].querySelector('.kpi-sub').textContent = '月均 ' + (elecSum/bills.length).toFixed(0) + ' 度';
+    cells[3].querySelector('.kpi-value').textContent = elecPct.toFixed(1) + '%';
+    cells[3].querySelector('.kpi-sub').textContent = '占总费用';
+  }
+}
+
+let sortColumn = -1, sortDirection = 'asc';
+
+function updateTable() {
+  const wrap = document.getElementById('tableWrap');
+  document.getElementById('tableCount').textContent = bills.length + ' 条记录';
+  let html = '<table><thead><tr>';
+  html += '<th onclick="sortTable(0)">月份<span class="sort-icon">' + (sortColumn === 0 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(1)">用水（吨）<span class="sort-icon">' + (sortColumn === 1 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(2)">水费<span class="sort-icon">' + (sortColumn === 2 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(3)">用电（度）<span class="sort-icon">' + (sortColumn === 3 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(4)">电费<span class="sort-icon">' + (sortColumn === 4 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(5)">公摊电费<span class="sort-icon">' + (sortColumn === 5 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(6)">管理费<span class="sort-icon">' + (sortColumn === 6 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th onclick="sortTable(7)">总费用<span class="sort-icon">' + (sortColumn === 7 ? (sortDirection === 'asc' ? '↑' : '↓') : '') + '</span></th>';
+  html += '<th>等级</th><th></th></tr></thead><tbody>';
+  let sortedBills = [...bills];
+  if (sortColumn >= 0) {
+    sortedBills.sort((a, b) => {
+      let aVal, bVal;
+      switch(sortColumn) {
+        case 0: aVal = a.month; bVal = b.month; break;
+        case 1: aVal = a.waterUsage || 0; bVal = b.waterUsage || 0; break;
+        case 2: aVal = a.waterFee; bVal = b.waterFee; break;
+        case 3: aVal = a.elecUsage || 0; bVal = b.elecUsage || 0; break;
+        case 4: aVal = a.elecFee; bVal = b.elecFee; break;
+        case 5: aVal = a.shareElec; bVal = b.shareElec; break;
+        case 6: aVal = a.mgmtFee; bVal = b.mgmtFee; break;
+        case 7: aVal = a.total; bVal = b.total; break;
+        default: return 0;
+      }
+      if (aVal === bVal) return 0;
+      if (sortDirection === 'asc') return aVal > bVal ? 1 : -1;
+      else return aVal < bVal ? 1 : -1;
+    });
+  }
+  const BUDGET_ALERT = 700, BUDGET_MID = 550;
+  // Anomaly detection: find previous month for each bill
+  const billMap = new Map(bills.map((b, idx) => [b.month, { ...b, idx }]));
+  const monthKeys = bills.map(b => b.month).sort();
+  const prevMonthMap = {};
+  for (let i = 1; i < monthKeys.length; i++) prevMonthMap[monthKeys[i]] = monthKeys[i - 1];
+  sortedBills.forEach((b) => {
+    const level = b.total > BUDGET_ALERT ? 'high' : b.total > BUDGET_MID ? 'mid' : 'low';
+    const labels = {high:'高',mid:'中',low:'低'};
+    const rowClass = (bills.findIndex(bb => bb.month === b.month) === lastAddedIdx) ? ' row-new' : '';
+    const alertClass = level === 'high' ? ' row-alert' : '';
+    // Anomaly: >30% MoM increase in total or elecUsage
+    const prevM = prevMonthMap[b.month];
+    const prevB = prevM ? billMap.get(prevM) : null;
+    let anomalyHTML = '';
+    if (prevB) {
+      const totalChange = (b.total - prevB.total) / (prevB.total || 1);
+      const elecChange = ((b.elecUsage || 0) - (prevB.elecUsage || 0)) / ((prevB.elecUsage || 1));
+      if (totalChange > 0.30 || elecChange > 0.30) {
+        const tips = [];
+        if (totalChange > 0.30) tips.push('总费用环比 +' + (totalChange * 100).toFixed(0) + '%');
+        if (elecChange > 0.30) tips.push('用电环比 +' + (elecChange * 100).toFixed(0) + '%');
+        anomalyHTML = ' <span class="anomaly-label" title="' + tips.join('，') + '">异常突增</span>';
+      }
+    }
+    html += '<tr class="' + rowClass.trim() + alertClass + '"><td>' + b.month + anomalyHTML + '</td><td>' + (b.waterUsage||0) + '</td><td>' + b.waterFee.toFixed(2) + '</td><td>' + (b.elecUsage||0) + '</td><td>' + b.elecFee.toFixed(2) + '</td><td>' + b.shareElec.toFixed(2) + '</td><td>' + b.mgmtFee.toFixed(2) + '</td><td><strong>' + b.total.toFixed(2) + '</strong></td><td><span class="badge badge-' + level + '" title="高：总费用 > ¥700 / 中：¥550–¥700 / 低：< ¥550">' + labels[level] + '</span></td><td><button class="delete-btn" onclick="deleteRecord(' + bills.findIndex(bb => bb.month === b.month) + ')" title="删除" aria-label="删除 ' + b.month + '">×</button></td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function sortTable(col) {
+  if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+  else { sortColumn = col; sortDirection = 'asc'; }
+  updateTable();
+}
+
+function updateCharts() {
+  const labels = bills.map(b => b.month.replace('20','').replace('-',''));
+  const total = bills.map(b => b.total);
+  const elec = bills.map(b => b.elecFee);
+  const water = bills.map(b => b.waterFee);
+  const waterQty = bills.map(b => b.waterUsage||0);
+  const elecQty = bills.map(b => b.elecUsage||0);
+  const unitPrice = elec.map((e,i) => e && elecQty[i] ? +(e / elecQty[i]).toFixed(4) : 0);
+  Object.keys(charts).forEach(k => { if (charts[k]) { charts[k].destroy(); charts[k] = null; } });
+
+  const baseOpts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 600, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: { backgroundColor: 'rgba(30,30,30,0.95)', titleColor: '#e5e5e5', bodyColor: '#e5e5e5', borderColor: '#444', borderWidth: 1, padding: 10, cornerRadius: 8, titleFont: { weight: '600' } }
+    }
+  };
+  const xTickOpts = { font: { size: 10, weight: '500' }, autoSkip: false, maxRotation: 45, color: '#666' };
+  const gridColor = '#2a2a2a';
+
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: '总费用', data: total, backgroundColor: CHART_COLORS.trend, borderRadius: 3, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.8 }] },
+    options: { ...baseOpts, onClick: (e, el) => { if (el.length) highlightTableRow(el[0].index); }, onHover: (e, el) => { e.native.target.style.cursor = el.length ? 'pointer' : 'default'; }, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => '¥'+v, color: '#666' }, grid: { color: gridColor } } } }
+  });
+
+  charts.water = new Chart(document.getElementById('waterChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: '用水量', data: waterQty, backgroundColor: waterQty.map(v => v > 14 ? CHART_COLORS.elec : v > 10 ? CHART_COLORS.mgmt : CHART_COLORS.water), borderRadius: 3, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.8 }] },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => v+' 吨', color: '#666' }, grid: { color: gridColor } } } }
+  });
+
+  charts.elec = new Chart(document.getElementById('elecChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: '用电量', data: elecQty, backgroundColor: elecQty.map(v => v > 700 ? CHART_COLORS.elec : v > 400 ? CHART_COLORS.mgmt : CHART_COLORS.trend), borderRadius: 3, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.8 }] },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { ticks: { callback: v => v+' 度', color: '#666' }, grid: { color: gridColor } } } }
+  });
+
+  const sumE = bills.reduce((s,b) => s + b.elecFee, 0);
+  const sumW = bills.reduce((s,b) => s + b.waterFee, 0);
+  const sumM = bills.reduce((s,b) => s + b.mgmtFee, 0);
+  const sumS = bills.reduce((s,b) => s + b.shareElec, 0);
+  const grand = sumE + sumW + sumM + sumS;
+
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: { labels: ['电费','水费','管理费','公摊电费'], datasets: [{ data: [+sumE.toFixed(2), +sumW.toFixed(2), +sumM.toFixed(2), +sumS.toFixed(2)], backgroundColor: [CHART_COLORS.trend, CHART_COLORS.water, CHART_COLORS.mgmt, CHART_COLORS.share], borderWidth: 3, borderColor: '#141414', hoverBorderWidth: 4 }] },
+    options: { ...baseOpts, cutout: '64%', animation: { ...baseOpts.animation, animateRotate: true }, plugins: { ...baseOpts.plugins, legend: { display: true, position: 'right', labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', color: '#a0a0a0' } }, tooltip: { ...baseOpts.plugins.tooltip, callbacks: { label: ctx => ctx.label + ': ¥' + Number(ctx.raw).toFixed(0) + ' (' + (ctx.raw/grand*100).toFixed(1) + '%)' } } } }
+  });
+
+  charts.unit = new Chart(document.getElementById('unitChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: '单价（元/度）', data: unitPrice, borderColor: CHART_COLORS.unit, backgroundColor: 'rgba(96,165,250,.05)', tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.unit, borderWidth: 2.5 }] },
+    options: { ...baseOpts, scales: { x: { ticks: xTickOpts, grid: { display: false } }, y: { min: Math.min(...unitPrice) * 0.95, ticks: { callback: v => '¥'+v, color: '#666' }, grid: { color: gridColor } } } }
+  });
+
+  updateYoYChart();
+  updateMeterChart();
+}
+
+/* ===== Gamification ===== */
+function updateGamification() {
+  const n = bills.length;
+  if (!n) return;
+  const avgElec  = bills.reduce((s, b) => s + (b.elecUsage  || 0), 0) / n;
+  const avgWater = bills.reduce((s, b) => s + (b.waterUsage || 0), 0) / n;
+  const avgTotal = bills.reduce((s, b) => s + (b.total      || 0), 0) / n;
+  const latest   = bills[n - 1];
+  const prev     = n >= 2 ? bills[n - 2] : null;
+
+  // Badges
+  const BADGES = [
+    { icon:'🍃', name:'节能达人',   desc:'连续 3 个月用电低于月均',
+      check:() => { let s=0; for(let i=n-1;i>=0;i--){ if((bills[i].elecUsage||0)<avgElec) s++; else break; if(s>=3) return true; } return false; }},
+    { icon:'❄️', name:'淡季王者',   desc:'春秋月用电 < 350 度',
+      check:() => bills.some(b=>{ const m=+b.month.split('-')[1]; return [3,4,5,10,11].includes(m)&&(b.elecUsage||0)<350; })},
+    { icon:'🔥', name:'夏日幸存者', desc:'7/8 月有账单记录',
+      check:() => bills.some(b=>{ const m=+b.month.split('-')[1]; return m===7||m===8; })},
+    { icon:'💧', name:'滴水不漏',   desc:'单月用水 ≤ 6 吨',
+      check:() => bills.some(b=>(b.waterUsage||0)<=6)},
+    { icon:'⚡', name:'连击 3 连',  desc:'连续 3 个月总费用环比下降',
+      check:() => { if(n<4) return false; for(let i=n-1;i>=3;i--){ if(bills[i].total<bills[i-1].total&&bills[i-1].total<bills[i-2].total&&bills[i-2].total<bills[i-3].total) return true; } return false; }},
+    { icon:'🎯', name:'预算精算师', desc:'最近 6 个月全部低于月均',
+      check:() => n>=6 && bills.slice(-6).every(b=>b.total<avgTotal)},
+    { icon:'🌱', name:'水电双省',   desc:'同月水电双双低于均值',
+      check:() => bills.some(b=>(b.elecUsage||0)<avgElec&&(b.waterUsage||0)<avgWater)},
+    { icon:'🌗', name:'半年皆达标', desc:'连续 6 个月低于均值 90%',
+      check:() => n>=6 && bills.slice(-6).every(b=>b.total<avgTotal*0.9)},
+    { icon:'🏆', name:'破纪录者',   desc:'当月用电历史新低',
+      check:() => { if(n<2) return false; const le=latest.elecUsage||0; return bills.slice(0,-1).every(b=>(b.elecUsage||0)>le); }},
+    { icon:'👑', name:'省电王者',   desc:'近 3 个月用电均 < 均值 80%',
+      check:() => n>=3 && bills.slice(-3).every(b=>(b.elecUsage||0)<avgElec*0.8)},
+    { icon:'🌍', name:'低碳标兵',   desc:'当年总用电 < 4000 度',
+      check:() => { const yr=latest.month.split('-')[0]; const yb=bills.filter(b=>b.month.startsWith(yr)); return yb.length>=6 && yb.reduce((s,b)=>s+(b.elecUsage||0),0)<4000; }},
+    { icon:'🥚', name:'孵化！',     desc:'隐藏：记账满 12 个月',
+      check:() => n>=12},
+  ];
+  const ev  = BADGES.map(b => ({ ...b, on: b.check() }));
+  const cnt = ev.filter(b => b.on).length;
+
+  // Score
+  let s = 50;
+  const er = (latest.elecUsage||0)/(avgElec||1);
+  s += er<0.7?20:er<0.9?12:er<1.0?5:er<1.2?-5:-15;
+  const wr = (latest.waterUsage||0)/(avgWater||1);
+  s += wr<0.7?10:wr<1.0?4:wr>1.5?-8:0;
+  if (prev) { const c=(latest.total-prev.total)/(prev.total||1); s+=c<-0.1?10:c<0?5:c<0.1?0:c<0.3?-5:-10; }
+  s += Math.min(10, cnt);
+  const sc = Math.max(0, Math.min(100, Math.round(s)));
+
+  // Rank
+  const RANKS = [
+    { name:'青铜',     icon:'🥉', min:0,   max:39,  next:'白银',     clr:'#cd7f32' },
+    { name:'白银',     icon:'🥈', min:40,  max:59,  next:'黄金 I',   clr:'#c0c0c0' },
+    { name:'黄金 I',   icon:'🏅', min:60,  max:69,  next:'黄金 II',  clr:'#f5a623' },
+    { name:'黄金 II',  icon:'🏅', min:70,  max:79,  next:'黄金 III', clr:'#f5a623' },
+    { name:'黄金 III', icon:'🏅', min:80,  max:88,  next:'铂金',     clr:'#f5a623' },
+    { name:'铂金',     icon:'💎', min:89,  max:94,  next:'钻石',     clr:'#60a5fa' },
+    { name:'钻石',     icon:'💠', min:95,  max:99,  next:'省电王者', clr:'#a78bfa' },
+    { name:'省电王者', icon:'🌟', min:100, max:100, next:null,       clr:'#4ade80' },
+  ];
+  const rank = RANKS.find(r=>sc>=r.min&&sc<=r.max)||RANKS[0];
+  const nxtR = RANKS.find(r=>r.name===rank.next);
+  const pct  = nxtR ? Math.round((sc-rank.min)/(nxtR.min-rank.min)*100) : 100;
+  const gap  = nxtR ? nxtR.min-sc : 0;
+
+  // Hamster message
+  const aboveAvg = latest.total > avgTotal;
+  function line() {
+    const le=latest.elecUsage||0, lt=latest.total||0;
+    const maxT=Math.max(...bills.map(b=>b.total||0));
+    const minE=Math.min(...bills.map(b=>b.elecUsage||999));
+    const cr=prev?(lt-prev.total)/(prev.total||1):0;
+    const m=+latest.month.split('-')[1];
+    if(lt===maxT)      return `宿主！本月 ${lt.toFixed(0)} 元创下历史最高纪录！本耗子已把空调遥控器的电池拔了，别找我！🔋`;
+    if(le===minE)      return `报告！本月用电 ${le} 度历史新低！本耗子感动到胡须颤抖，今晚少偷你一度电以示庆祝！🎊`;
+    if(sc>=89)         return `宿主冲入铂金啦！本耗子在偷偷学如何兑换钻石奖杯……你继续保持，我偷偷努力！💎`;
+    if(cr<-0.15)       return `本月比上月省了 ${Math.abs((cr*100).toFixed(1))}%！本耗子感动得不敢偷电了（才怪）！💪`;
+    if(cr>0.2)         return `本月涨了 ${(cr*100).toFixed(1)}%……肯定是隔壁蹭电，绝不是你没关空调，和本耗子无关！🙈`;
+    if(cnt>=10)        return `已解锁 ${cnt} 枚徽章！本耗子决定改邪归正，以后只偷你 0.001 度电！🏆`;
+    if(m===7||m===8)   return `七八月高温本耗子理解，但 ${le} 度这数字烫卷了我的尾巴……空调 26 度真够用的！🌡️`;
+    if(m===1||m===2)   return `冬天用电 ${le} 度，不错！本耗子冻得瑟瑟发抖，但这数字让本鼠整个暖和了！🧤`;
+    const pool=[
+      `本月 ${lt.toFixed(0)} 元，${lt<avgTotal?'低于均值，本耗子奖励自己多偷半度电！':'高于均值，该给空调约法三章了！'}`,
+      `本耗子日夜监控账单，心累，但${sc>=70?'这月不错，给你打及格分':'这月需努力，本耗子替你愁得掉毛了'}！`,
+      `用电 ${le} 度，${le>avgElec?'比均值多 '+(le-avgElec).toFixed(0)+' 度，够跑 '+Math.round((le-avgElec)*0.12)+' 公里电动车！':'比均值少 '+(avgElec-le).toFixed(0)+' 度，本耗子一年用不完！'}`,
+    ];
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+  const msg = line();
+
+  // Build HTML
+  const statsHTML = `
+    <div class="gm-stat">
+      <div class="gm-stat-val">${sc}<span class="gm-stat-unit"> / 100</span></div>
+      <div class="gm-stat-lbl">综合评分</div>
+    </div>
+    <div class="gm-stat-div"></div>
+    <div class="gm-stat">
+      <div class="gm-stat-val">${cnt}<span class="gm-stat-unit"> / ${BADGES.length}</span></div>
+      <div class="gm-stat-lbl">徽章已解锁</div>
+    </div>
+    <div class="gm-stat-div"></div>
+    <div class="gm-stat">
+      <div class="gm-stat-val gm-stat-val--sm" style="color:${aboveAvg?'var(--red)':'var(--green)'}">
+        ${aboveAvg?'▲ 高于均值':'▼ 低于均值'}
+      </div>
+      <div class="gm-stat-lbl">本月 vs 均值</div>
+    </div>`;
+
+  const bdgHTML = ev.map((b,i)=>`
+    <div class="gm-bdg ${b.on?'gm-bdg--on':'gm-bdg--off'}"
+         title="${b.name}：${b.desc}"
+         ${b.on?`style="animation-delay:${i*.04}s"`:''}>
+      <div class="gm-bdg-icon">${b.icon}</div>
+      <div class="gm-bdg-name">${b.name}</div>
+      ${b.on?'<div class="gm-bdg-dot"></div>':''}
+    </div>`).join('');
+
+  const html = `
+    <div class="gm-top">
+      <div class="gm-rank-card">
+        <div class="gm-rank-badge" style="background:${rank.clr}12; border-color:${rank.clr}35;">
+          <span class="gm-rank-icon">${rank.icon}</span>
+          <div>
+            <div class="gm-rank-name" style="color:${rank.clr};">${rank.name}</div>
+            <div class="gm-rank-sub">当前段位</div>
+          </div>
+        </div>
+        <div class="gm-prog-area">
+          <div class="gm-prog-meta">
+            <span class="gm-prog-label">${nxtR?`距「${rank.next}」还差 ${gap} 分`:'已达最高段位 🎉'}</span>
+            <span class="gm-prog-pct" style="color:${rank.clr};">${pct}%</span>
+          </div>
+          <div class="gm-prog-track">
+            <div class="gm-prog-fill" style="width:${pct}%;background:${rank.clr};"></div>
+          </div>
+        </div>
+      </div>
+      <div class="gm-stats-row">${statsHTML}</div>
+    </div>
+    <div class="gm-sep"></div>
+    <div class="gm-bdg-hd">
+      <span class="gm-bdg-title">成就徽章</span>
+      <span class="gm-bdg-sub">已解锁 ${cnt} / ${BADGES.length} · 悬浮查看条件</span>
+    </div>
+    <div class="gm-bdg-grid">${bdgHTML}</div>
+    <div class="gm-sep"></div>
+    <div class="gm-hamster">
+      <span class="gm-hm-av">🐹</span>
+      <div class="gm-hm-bubble">
+        <span class="gm-hm-name">电耗子</span>
+        <span class="gm-hm-txt">${msg}</span>
+      </div>
+    </div>`;
+
+  document.getElementById('gamePanel').innerHTML = html;
+}
+
+/* ===== Budget & Prediction ===== */
+function updateBudgetPreview() {
+  const input = document.getElementById('budgetInput');
+  const tag = document.getElementById('budgetTag');
+  const statusTag = document.getElementById('budgetStatusTag');
+  const val = parseFloat(input.value) || 0;
+  if (!val || !bills.length) { tag.style.display = 'none'; statusTag.style.display = 'none'; return; }
+  const latest = bills[bills.length - 1];
+  const ratio = latest.total / val;
+  if (ratio > 1) {
+    tag.className = 'budget-tag danger'; tag.textContent = '超支 ' + (ratio * 100 - 100).toFixed(0) + '%'; tag.style.display = 'inline-block';
+    statusTag.className = 'budget-tag danger'; statusTag.textContent = '⚠ 超支 ¥' + (latest.total - val).toFixed(0); statusTag.style.display = 'inline-block';
+  } else if (ratio > 0.85) {
+    tag.className = 'budget-tag warn'; tag.textContent = '预警 ' + (ratio * 100).toFixed(0) + '%'; tag.style.display = 'inline-block';
+    statusTag.className = 'budget-tag warn'; statusTag.textContent = '⚡ 预算预警'; statusTag.style.display = 'inline-block';
+  } else {
+    tag.className = 'budget-tag ok'; tag.textContent = '预算内'; tag.style.display = 'inline-block';
+    statusTag.className = 'budget-tag ok'; statusTag.textContent = '✓ 预算健康'; statusTag.style.display = 'inline-block';
+  }
+}
+function saveBudget() {
+  const val = parseFloat(document.getElementById('budgetInput').value) || 0;
+  monthlyBudget = val;
+  localStorage.setItem('pb_budget', String(val));
+  updateBudgetPreview(); updatePrediction();
+  showToast(val ? '月度预算已设为 ¥' + val : '预算已清除');
+}
+function linearRegression(y) {
+  const n = y.length; if (n < 2) return { slope: 0, intercept: y[0] || 0 };
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (let i = 0; i < n; i++) { sx += i; sy += y[i]; sxx += i * i; sxy += i * y[i]; }
+  const denom = n * sxx - sx * sx;
+  if (Math.abs(denom) < 1e-10) return { slope: 0, intercept: sy / n };
+  const slope = (n * sxy - sx * sy) / denom;
+  const intercept = (sy - slope * sx) / n;
+  return { slope, intercept };
+}
+function updatePrediction() {
+  const section = document.getElementById('predictionSection');
+  const predTag = document.getElementById('predictionTag');
+  if (bills.length < 3) { section.style.display = 'none'; predTag.style.display = 'none'; return; }
+  section.style.display = '';
+  const recent = bills.slice(-6);
+  const totals = recent.map(b => b.total);
+  const lr = linearRegression(totals);
+  const nextPred = lr.slope * totals.length + lr.intercept;
+  const predVal = Math.max(0, nextPred);
+  const trend = lr.slope;
+  const trendPct = totals[0] ? (trend / totals[0] * 100) : 0;
+  const elNext = document.getElementById('predNext');
+  const elTrend = document.getElementById('predTrend');
+  const elBudget = document.getElementById('predBudget');
+  elNext.textContent = '¥' + predVal.toFixed(0);
+  if (trend > 5) { elTrend.textContent = '▲ ' + Math.abs(trendPct).toFixed(1) + '%'; elTrend.className = 'pred-val up'; }
+  else if (trend < -5) { elTrend.textContent = '▼ ' + Math.abs(trendPct).toFixed(1) + '%'; elTrend.className = 'pred-val down'; }
+  else { elTrend.textContent = '→ 平稳'; elTrend.className = 'pred-val'; }
+  if (monthlyBudget) {
+    const remain = monthlyBudget - predVal;
+    if (remain >= 0) { elBudget.textContent = '¥' + remain.toFixed(0); elBudget.className = 'pred-val down'; }
+    else { elBudget.textContent = '-¥' + Math.abs(remain).toFixed(0); elBudget.className = 'pred-val up'; }
+    predTag.style.display = 'inline-block';
+    predTag.className = remain >= 0 ? 'budget-tag ok' : 'budget-tag danger';
+    predTag.textContent = remain >= 0 ? '预测可控' : '预测超支';
+  } else {
+    elBudget.textContent = '未设置'; elBudget.className = 'pred-val';
+    predTag.style.display = 'none';
+  }
+}
+
+function updateYoYChart() {
+  const byYear = {};
+  bills.forEach(b => { const [y, m] = b.month.split('-'); (byYear[y] = byYear[y] || {})[m] = b.total; });
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const years = Object.keys(byYear).sort();
+  const palette = ['#f5a623','#4ade80','#f87171','#a78bfa'];
+  const datasets = years.map((y, i) => ({ label: y + '年', data: months.map(m => byYear[y][m] ?? null), backgroundColor: palette[i % palette.length], borderRadius: 3 }));
+  charts.yoy = new Chart(document.getElementById('yoyChart'), {
+    type: 'bar',
+    data: { labels: months.map(m => m + '月'), datasets },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } } }, scales: { y: { ticks: { callback: v => '¥' + v, color: '#666' }, grid: { color: '#2a2a2a' } }, x: { ticks: { color: '#666' }, grid: { display: false } } } }
+  });
+}
+
+function updateMeterChart() {
+  const labels = bills.map(b => b.month.replace('20','').replace('-',''));
+  const elecReadings = bills.map(b => Number.isFinite(b.currElec) ? b.currElec : null);
+  const waterReadings = bills.map(b => Number.isFinite(b.currWater) ? b.currWater : null);
+  const hasMeterData = elecReadings.some(v => v !== null) || waterReadings.some(v => v !== null);
+  if (!hasMeterData) {
+    const canvas = document.getElementById('meterChart');
+    const panel = canvas.closest('.chart-panel');
+    canvas.parentElement.style.display = 'none';
+    if (!document.getElementById('meterEmptyMsg')) {
+      const msg = document.createElement('div');
+      msg.id = 'meterEmptyMsg'; msg.className = 'empty-msg';
+      msg.innerHTML = '<p>暂无水电表读数</p><p>请粘贴包含上期/本期读数的短信，或导入包含读数列的 CSV</p>';
+      panel.appendChild(msg);
+    }
+    return;
+  }
+  const oldMsg = document.getElementById('meterEmptyMsg');
+  if (oldMsg) oldMsg.remove();
+  document.getElementById('meterChart').parentElement.style.display = 'block';
+
+  charts.meter = new Chart(document.getElementById('meterChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '电表读数（度）', data: elecReadings, borderColor: CHART_COLORS.elec, backgroundColor: 'rgba(248,113,113,.05)', tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.elec, borderWidth: 2.5, yAxisID: 'y' },
+        { label: '水表读数（吨）', data: waterReadings, borderColor: CHART_COLORS.water, backgroundColor: 'rgba(74,222,128,.05)', tension: .35, fill: true, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: CHART_COLORS.water, borderWidth: 2.5, yAxisID: 'y1' }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, position: 'top', labels: { color: '#a0a0a0' } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { ticks: { autoSkip: false, color: '#666' }, grid: { display: false } }, y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '电表读数（度）', color: '#a0a0a0' }, grid: { color: '#2a2a2a' } }, y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '水表读数（吨）', color: '#a0a0a0' }, grid: { drawOnChartArea: false } } } }
+  });
+}
+
+function exportCSV() {
+  if (!bills.length) { showToast('暂无数据可导出'); return; }
+  let csv = '月份,用水量(吨),水费(元),用电量(度),电费(元),公摊电费(元),管理费(元),总费用(元),上期电表读数,本期电表读数,上期水表读数,本期水表读数\n';
+  bills.forEach(b => {
+    csv += [b.month, b.waterUsage || 0, b.waterFee.toFixed(2), b.elecUsage || 0, b.elecFee.toFixed(2), b.shareElec.toFixed(2), b.mgmtFee.toFixed(2), b.total.toFixed(2), Number.isFinite(b.prevElec) ? b.prevElec : '', Number.isFinite(b.currElec) ? b.currElec : '', Number.isFinite(b.prevWater) ? b.prevWater : '', Number.isFinite(b.currWater) ? b.currWater : ''].join(',') + '\n';
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '物业账单_F3-2403.csv'; a.click(); URL.revokeObjectURL(a.href);
+  showToast('CSV 已导出');
+}
+
+function importCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const lines = e.target.result.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { showToast('CSV 文件为空'); return; }
+      const header = lines[0].replace(/^\ufeff/, '');
+      const newBills = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(','); if (cols.length < 8) continue;
+        const month = cols[0].trim(); if (!month || !month.match(/^\d{4}-\d{2}$/)) continue;
+        newBills.push({ month, waterUsage: parseFloat(cols[1]) || 0, waterFee: parseFloat(cols[2]) || 0, elecUsage: parseFloat(cols[3]) || 0, elecFee: parseFloat(cols[4]) || 0, shareElec: parseFloat(cols[5]) || 0, mgmtFee: parseFloat(cols[6]) || 0, total: parseFloat(cols[7]) || 0, prevElec: cols[8] !== undefined && cols[8] !== '' ? parseFloat(cols[8]) : null, currElec: cols[9] !== undefined && cols[9] !== '' ? parseFloat(cols[9]) : null, prevWater: cols[10] !== undefined && cols[10] !== '' ? parseFloat(cols[10]) : null, currWater: cols[11] !== undefined && cols[11] !== '' ? parseFloat(cols[11]) : null });
+      }
+      if (!newBills.length) { showToast('未识别到有效数据'); return; }
+      bills = newBills; bills.sort((a, b) => a.month.localeCompare(b.month)); lastAddedIdx = bills.length - 1;
+      saveData(); render(); showToast('已导入 ' + bills.length + ' 条记录');
+    } catch (err) { showToast('导入失败：' + err.message); }
+  };
+  reader.readAsText(file, 'UTF-8'); event.target.value = '';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show'); clearTimeout(toastTimer);
+  const duration = Math.max(2200, msg.length * 80);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+document.addEventListener('keydown', function(e) { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); startParse(); } });
+
+document.getElementById('importBtn').addEventListener('click', function() {
+  var input = document.createElement('input'); input.type = 'file'; input.accept = '.csv';
+  input.style.cssText = 'position:fixed;top:-100px;left:-100px;width:0;height:0;opacity:0;pointer-events:none;z-index:-1';
+  document.body.appendChild(input); input.onchange = function(ev) { importCSV(ev); input.remove(); }; requestAnimationFrame(function() { input.click(); });
+});
+
+function toggleGistSetup() { const el = document.getElementById('gistSetup'); if (el.style.display === 'none' || !el.style.display) { el.style.display = 'flex'; setupFocusTrap(el); } else { el.style.display = 'none'; } }
+function showGistSetup(show) { document.getElementById('gistSetup').style.display = show ? 'flex' : 'none'; if (show) setupFocusTrap(document.getElementById('gistSetup')); }
+function setupFocusTrap(modal) {
+  const focusableElements = modal.querySelectorAll('button, input, textarea, select');
+  const firstFocusable = focusableElements[0]; const lastFocusable = focusableElements[focusableElements.length - 1];
+  setTimeout(() => firstFocusable.focus(), 100);
+  modal.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') modal.style.display = 'none';
+    if (e.key === 'Tab') { if (e.shiftKey) { if (document.activeElement === firstFocusable) { e.preventDefault(); lastFocusable.focus(); }} else { if (document.activeElement === lastFocusable) { e.preventDefault(); firstFocusable.focus(); }} }
+  });
+}
+
+async function setupGist() {
+  const input = document.getElementById('gistTokenInput'); const msg = document.getElementById('gistSetupMsg'); const token = input.value.trim();
+  if (!token) { msg.className = 'gist-setup-msg error'; msg.textContent = '请粘贴 GitHub Token'; return; }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) { msg.className = 'gist-setup-msg error'; msg.textContent = 'Token 格式不正确，应以 ghp_ 或 github_pat_ 开头'; return; }
+  msg.className = 'gist-setup-msg'; msg.textContent = '验证中…';
+  try {
+    const res = await fetch(GIST_API + '/user', { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
+    if (!res.ok) throw new Error('Token 无效'); const user = await res.json();
+    msg.className = 'gist-setup-msg success'; msg.textContent = 'Token 有效 — GitHub 用户: ' + user.login;
+  } catch(e) { msg.className = 'gist-setup-msg error'; msg.textContent = 'Token 验证失败：' + e.message; return; }
+  gistToken = token; saveGistConfig(); input.value = '';
+  msg.textContent += ' — 同步中…';
+  try {
+    const found = await gistFindExisting();
+    if (found) { const data = await gistFetchBills(); if (data && data.length) { bills = data.map(normalizeBill); localStorage.setItem(STORAGE_KEY, JSON.stringify(bills)); } }
+    else { await gistCreate(bills); }
+    gistOnline = true; setSyncStatus('online', '最近同步：' + new Date().toLocaleString('zh-CN')); msg.textContent += ' — 同步成功！';
+    setTimeout(() => { showGistSetup(false); render(); }, 1200);
+  } catch(e) { msg.className = 'gist-setup-msg error'; msg.textContent = 'Gist 创建失败：' + e.message + '。Token 已保存，请重试。'; setSyncStatus('offline', 'Token 有效但 Gist 创建失败'); }
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { const el = document.getElementById('gistSetup'); if (el.style.display === 'flex') el.style.display = 'none'; } });
+
+/* ===== Smart Suggestions ===== */
+function updateSuggestions() {
+  const section = document.getElementById('suggestSection');
+  const list = document.getElementById('suggestList');
+  if (bills.length < 2) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const n = bills.length;
+  const avgElec = bills.reduce((s, b) => s + (b.elecUsage || 0), 0) / n;
+  const avgTotal = bills.reduce((s, b) => s + (b.total || 0), 0) / n;
+  const latest = bills[n - 1];
+  const prev = n >= 2 ? bills[n - 2] : null;
+  const m = +latest.month.split('-')[1];
+  const suggestions = [];
+  // Suggestion 1: based on latest vs average
+  const elecRatio = (latest.elecUsage || 0) / (avgElec || 1);
+  if (elecRatio > 1.2) {
+    const excess = ((latest.elecUsage || 0) - avgElec).toFixed(0);
+    suggestions.push({ icon: '⚡', text: `<strong>本月用电偏高</strong>：比上月均值多 ${excess} 度。建议检查空调设定温度（每调高1°C可省约6-8%电量），或排查老旧电器待机耗电。` });
+  } else if (elecRatio < 0.8) {
+    suggestions.push({ icon: '🌿', text: `<strong>本月用电优秀</strong>：低于均值 ${((1 - elecRatio) * 100).toFixed(0)}%。保持当前习惯，您正在节省约 ¥${((avgElec - (latest.elecUsage || 0)) * 1.5).toFixed(0)}/月。` });
+  } else {
+    suggestions.push({ icon: '💡', text: `<strong>用电平稳</strong>：本月用电量与历史均值基本持平。建议使用智能插座监控高功率电器，进一步优化用电结构。` });
+  }
+  // Suggestion 2: seasonal
+  if (m >= 6 && m <= 9) {
+    suggestions.push({ icon: '❄️', text: `<strong>夏季空调省电技巧</strong>：将空调设为26°C+自动风速，配合风扇可体感降温2-3°C。夜间使用睡眠模式，每月可省约50-80度电。` });
+  } else if (m >= 12 || m <= 2) {
+    suggestions.push({ icon: '🔥', text: `<strong>冬季取暖建议</strong>：电热水器设定50-55°C即可，每升高1°C约多耗5%电量。使用预约加热功能，避开峰电时段。` });
+  } else {
+    suggestions.push({ icon: '🍃', text: `<strong>春秋黄金期</strong>：当前季节气温适宜，是自然通风+减少空调使用的最佳时段，建议多开窗通风降低用电基数。` });
+  }
+  // Suggestion 3: cost structure
+  const elecPct = (latest.elecFee + latest.shareElec) / (latest.total || 1) * 100;
+  if (elecPct > 70) {
+    suggestions.push({ icon: '📊', text: `<strong>电费占比过高</strong>：电费占总费用 ${elecPct.toFixed(0)}%。建议关注阶梯电价档位，大功率电器尽量集中在低电价时段使用。` });
+  } else {
+    suggestions.push({ icon: '💧', text: `<strong>费用结构健康</strong>：非电费支出占比合理。检查水费是否异常（本月 ${latest.waterUsage || 0} 吨），及时报修漏水可长期节省。` });
+  }
+  list.innerHTML = suggestions.map(s => `<div class="suggest-item"><div class="suggest-icon">${s.icon}</div><div class="suggest-text">${s.text}</div></div>`).join('');
+}
+
+/* ===== Weather Correlation ===== */
+async function updateWeather() {
+  const section = document.getElementById('weatherSection');
+  const meta = document.getElementById('weatherMeta');
+  if (bills.length < 3) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  // Guangzhou coordinates
+  const LAT = 23.13, LON = 113.26;
+  const labels = [];
+  const temps = [];
+  const elecs = [];
+  // Fetch temperature for each bill month
+  for (const b of bills) {
+    const [y, mo] = b.month.split('-').map(Number);
+    const key = `${y}-${mo}`;
+    let avgTemp = weatherCache[key];
+    if (avgTemp === undefined) {
+      try {
+        const start = `${y}-${String(mo).padStart(2, '0')}-01`;
+        const endD = new Date(y, mo, 0);
+        const end = `${y}-${String(mo).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
+        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${start}&end_date=${end}&daily=temperature_2m_mean&timezone=Asia%2FShanghai`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          const daily = data.daily?.temperature_2m_mean;
+          if (daily && daily.length) {
+            avgTemp = daily.reduce((a, c) => a + c, 0) / daily.length;
+            weatherCache[key] = avgTemp;
+          }
+        }
+      } catch(e) { /* ignore network errors */ }
+    }
+    if (avgTemp !== undefined) {
+      labels.push(b.month.replace('20', '').replace('-', ''));
+      temps.push(+avgTemp.toFixed(1));
+      elecs.push(b.elecUsage || 0);
+    }
+  }
+  if (temps.length < 3) {
+    meta.innerHTML = '<span class="weather-chip">数据不足（需至少3个月含气温数据）</span>';
+    if (charts.weather) { charts.weather.destroy(); charts.weather = null; }
+    return;
+  }
+  meta.innerHTML = `<span class="weather-chip">广州月均气温 · ${temps.length} 个月匹配</span><span class="weather-chip">相关系数 ${pearson(temps, elecs).toFixed(2)}</span>`;
+  if (charts.weather) { charts.weather.destroy(); charts.weather = null; }
+  charts.weather = new Chart(document.getElementById('weatherChart'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: '用电量 vs 月均气温',
+        data: temps.map((t, i) => ({ x: t, y: elecs[i] })),
+        backgroundColor: elecs.map((e, i) => {
+          const t = temps[i];
+          return t > 28 ? 'rgba(248,113,113,0.75)' : t < 18 ? 'rgba(96,165,250,0.75)' : 'rgba(245,166,35,0.75)';
+        }),
+        pointRadius: 6, pointHoverRadius: 9
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: 'rgba(30,30,30,0.95)', titleColor: '#e5e5e5', bodyColor: '#e5e5e5', borderColor: '#444', borderWidth: 1, padding: 10, cornerRadius: 8, callbacks: { title: () => '', label: ctx => `${ctx.raw.x}°C · ${ctx.raw.y} 度` } }
+      },
+      scales: {
+        x: { title: { display: true, text: '月均气温 (°C)', color: '#a0a0a0' }, grid: { color: '#2a2a2a' }, ticks: { color: '#666' } },
+        y: { title: { display: true, text: '用电量 (度)', color: '#a0a0a0' }, grid: { color: '#2a2a2a' }, ticks: { color: '#666' } }
+      }
+    }
+  });
+}
+function pearson(x, y) {
+  const n = x.length; if (n < 2) return 0;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxy += x[i] * y[i]; sxx += x[i] * x[i]; syy += y[i] * y[i]; }
+  const num = n * sxy - sx * sy;
+  const den = Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
+  return den === 0 ? 0 : num / den;
+}
+
+/* ===== Share Card ===== */
+function generateShareCard() {
+  if (!bills.length) { showToast('暂无数据可分享'); return; }
+  const n = bills.length;
+  const totalSum = bills.reduce((s, b) => s + b.total, 0);
+  const avg = totalSum / n;
+  const latest = bills[n - 1];
+  const avgElec = bills.reduce((s, b) => s + (b.elecUsage || 0), 0) / n;
+  const sc = Math.round(Math.max(0, Math.min(100, 50 + (avgElec ? (1 - (latest.elecUsage || 0) / avgElec) * 30 : 0))));
+  const RANKS = [
+    { name:'青铜',icon:'🥉',clr:'#cd7f32' },{ name:'白银',icon:'🥈',clr:'#c0c0c0' },
+    { name:'黄金 I',icon:'🏅',clr:'#f5a623' },{ name:'黄金 II',icon:'🏅',clr:'#f5a623' },
+    { name:'黄金 III',icon:'🏅',clr:'#f5a623' },{ name:'铂金',icon:'💎',clr:'#60a5fa' },
+    { name:'钻石',icon:'💠',clr:'#a78bfa' },{ name:'省电王者',icon:'🌟',clr:'#4ade80' }
+  ];
+  const rank = RANKS[Math.min(7, Math.floor(sc / 13))] || RANKS[0];
+  const msgs = [
+    '本耗子偷电多年，第一次见到这么省的数字！',
+    '宿主这月表现不错，本耗子决定少偷0.5度！',
+    '账单已出，耗子震惊，这数据能拿奖状了！',
+    '电耗子认证：本月用电水平超越90%同类宿主！'
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+  const svgW = 800, svgH = 500;
+  const bg = '#0a0a0a'; const card = '#141414'; const ink = '#e5e5e5'; const ink2 = '#a0a0a0'; const accent = '#f5a623';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
+    <rect width="${svgW}" height="${svgH}" rx="20" fill="${bg}" stroke="#262626" stroke-width="2"/>
+    <rect x="30" y="30" width="${svgW-60}" height="${svgH-60}" rx="16" fill="${card}" stroke="#262626" stroke-width="1"/>
+    <text x="${svgW/2}" y="80" text-anchor="middle" fill="${ink}" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="28" font-weight="700">天骄时代城 F3-2403</text>
+    <text x="${svgW/2}" y="115" text-anchor="middle" fill="${ink2}" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="16">${latest.month} 账单 · 累计 ${n} 个月</text>
+    <circle cx="${svgW/2}" cy="210" r="52" fill="${rank.clr}" opacity="0.12"/>
+    <text x="${svgW/2}" y="200" text-anchor="middle" fill="${rank.clr}" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="40">${rank.icon}</text>
+    <text x="${svgW/2}" y="240" text-anchor="middle" fill="${rank.clr}" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="18" font-weight="700">${rank.name}</text>
+    <text x="${svgW/2-140}" y="330" text-anchor="middle" fill="${ink2}" font-size="14" font-family="PingFang SC,Microsoft YaHei,sans-serif">本月费用</text>
+    <text x="${svgW/2-140}" y="370" text-anchor="middle" fill="${accent}" font-size="36" font-weight="700" font-family="PingFang SC,Microsoft YaHei,sans-serif">¥${latest.total.toFixed(0)}</text>
+    <text x="${svgW/2}" y="330" text-anchor="middle" fill="${ink2}" font-size="14" font-family="PingFang SC,Microsoft YaHei,sans-serif">综合评分</text>
+    <text x="${svgW/2}" y="370" text-anchor="middle" fill="${ink}" font-size="36" font-weight="700" font-family="PingFang SC,Microsoft YaHei,sans-serif">${sc}</text>
+    <text x="${svgW/2+140}" y="330" text-anchor="middle" fill="${ink2}" font-size="14" font-family="PingFang SC,Microsoft YaHei,sans-serif">月均费用</text>
+    <text x="${svgW/2+140}" y="370" text-anchor="middle" fill="${ink}" font-size="36" font-weight="700" font-family="PingFang SC,Microsoft YaHei,sans-serif">¥${avg.toFixed(0)}</text>
+    <rect x="60" y="400" width="${svgW-120}" height="50" rx="10" fill="#1c1c1c"/>
+    <text x="${svgW/2}" y="432" text-anchor="middle" fill="${ink2}" font-size="15" font-family="PingFang SC,Microsoft YaHei,sans-serif">🐹 电耗子：${msg}</text>
+  </svg>`;
+  const container = document.getElementById('shareCardContainer');
+  container.innerHTML = `<div style="width:100%;aspect-ratio:800/500;background:${card};">${svg}</div>`;
+  container.dataset.svg = svg;
+  document.getElementById('shareModal').style.display = 'flex';
+}
+function downloadShareCard() {
+  const svg = document.getElementById('shareCardContainer').dataset.svg;
+  if (!svg) return;
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800; canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, 800, 500);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'F3-2403账单卡片_' + new Date().toLocaleDateString('zh-CN') + '.png';
+    a.click();
+    showToast('分享图已下载');
+  };
+  img.src = url;
+}
+
+/* ===== Year Summary ===== */
+function updateYearSummary() {
+  const section = document.getElementById('yearSection');
+  if (bills.length < 2) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const latest = bills[bills.length - 1];
+  const yr = latest.month.split('-')[0];
+  const yb = bills.filter(b => b.month.startsWith(yr));
+  if (!yb.length) { section.style.display = 'none'; return; }
+  const total = yb.reduce((s, b) => s + b.total, 0);
+  const avg = total / yb.length;
+  const elecSum = yb.reduce((s, b) => s + (b.elecUsage || 0), 0);
+  const carbon = elecSum * 0.785;
+  document.getElementById('yearTitle').textContent = yr + ' 年度账单';
+  document.getElementById('yearTag').textContent = yb.length + ' 个月数据';
+  document.getElementById('yearTotal').textContent = '¥' + total.toFixed(0);
+  document.getElementById('yearAvg').textContent = '¥' + avg.toFixed(0);
+  document.getElementById('yearElec').textContent = elecSum.toFixed(0) + ' 度';
+  document.getElementById('yearCarbon').textContent = carbon.toFixed(0) + ' kg';
+  const peak = yb.reduce((a, b) => (b.elecUsage || 0) > (a.elecUsage || 0) ? b : a, yb[0]);
+  const low = yb.reduce((a, b) => (b.elecUsage || 0) < (a.elecUsage || 0) ? b : a, yb[0]);
+  document.getElementById('yearPeak').textContent = '用电高峰月：' + peak.month + ' (' + (peak.elecUsage || 0) + ' 度)';
+  document.getElementById('yearLow').textContent = '用电最低月：' + low.month + ' (' + (low.elecUsage || 0) + ' 度)';
+  const prevYr = String(+yr - 1);
+  const pyb = bills.filter(b => b.month.startsWith(prevYr));
+  if (pyb.length) {
+    const pTotal = pyb.reduce((s, b) => s + b.total, 0);
+    const change = (total - pTotal) / (pTotal || 1) * 100;
+    const cls = change > 0 ? 'up' : 'down';
+    document.getElementById('yearYoy').innerHTML = '同比 ' + prevYr + '：' + (change > 0 ? '+' : '') + change.toFixed(1) + '%';
+    document.getElementById('yearYoy').className = cls;
+  } else {
+    document.getElementById('yearYoy').textContent = '同比：无去年数据';
+    document.getElementById('yearYoy').className = '';
+  }
+}
+
+/* ===== Tier Analysis (Guangzhou) ===== */
+function updateTierAnalysis() {
+  const section = document.getElementById('tierSection');
+  if (!bills.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const latest = bills[bills.length - 1];
+  const m = +latest.month.split('-')[1];
+  const isSummer = m >= 5 && m <= 10;
+  const usage = latest.elecUsage || 0;
+  // Tier thresholds
+  const T1_MAX = isSummer ? 260 : 200;
+  const T2_MAX = isSummer ? 600 : 400;
+  const BASE_PRICE = 0.6087;
+  const T2_PRICE = 0.6587;
+  const T3_PRICE = 0.9087;
+  let tier = 1, pct = 0, nextInfo = '', costInfo = '', badgeClass = 't1', badgeText = '第一档';
+  let price = BASE_PRICE, extra = 0;
+  if (usage <= T1_MAX) {
+    tier = 1; pct = usage / T1_MAX * 100;
+    nextInfo = '距离第二档还剩 ' + (T1_MAX - usage) + ' 度';
+    costInfo = '若再涨 100 度，约多花 ¥' + (100 * T2_PRICE).toFixed(1);
+    extra = 0;
+  } else if (usage <= T2_MAX) {
+    tier = 2; pct = (usage - T1_MAX) / (T2_MAX - T1_MAX) * 100;
+    badgeClass = 't2'; badgeText = '第二档';
+    price = T2_PRICE;
+    nextInfo = '距离第三档还剩 ' + (T2_MAX - usage) + ' 度';
+    costInfo = '若再涨 100 度，约多花 ¥' + (100 * T3_PRICE).toFixed(1);
+    extra = (usage - T1_MAX) * (T2_PRICE - BASE_PRICE);
+  } else {
+    tier = 3; pct = Math.min(100, (usage - T2_MAX) / 200 * 100);
+    badgeClass = 't3'; badgeText = '第三档';
+    price = T3_PRICE;
+    nextInfo = '已超出第二档 ' + (usage - T2_MAX) + ' 度';
+    costInfo = '第三档每度比第一档贵 ¥' + (T3_PRICE - BASE_PRICE).toFixed(2);
+    extra = (T2_MAX - T1_MAX) * (T2_PRICE - BASE_PRICE) + (usage - T2_MAX) * (T3_PRICE - BASE_PRICE);
+  }
+  document.getElementById('tierMonth').textContent = latest.month;
+  const badge = document.getElementById('tierBadge');
+  badge.className = 'tier-badge ' + badgeClass; badge.textContent = badgeText;
+  const fill = document.getElementById('tierFill');
+  fill.className = 'tier-fill t' + tier; fill.style.width = pct + '%';
+  document.getElementById('tierNeedle').style.left = pct + '%';
+  document.getElementById('tierMetaStart').textContent = '0 度';
+  document.getElementById('tierMetaMid').textContent = '第一档上限 ' + T1_MAX + ' 度';
+  document.getElementById('tierMetaEnd').textContent = '第二档上限 ' + T2_MAX + ' 度';
+  document.getElementById('tierNextInfo').textContent = nextInfo;
+  document.getElementById('tierCostInfo').textContent = costInfo;
+  document.getElementById('tierUsage').textContent = usage.toFixed(0);
+  document.getElementById('tierPrice').textContent = price.toFixed(4);
+  document.getElementById('tierExtra').textContent = extra.toFixed(1);
+}
+
+/* ===== Compare Mode ===== */
+let compareMode = false;
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  const bar = document.getElementById('compareBar');
+  const section = document.getElementById('compareSection');
+  if (compareMode) {
+    if (bills.length < 2) { showToast('至少需要 2 条记录才能对比'); compareMode = false; return; }
+    bar.classList.add('show');
+    updateCompareOptions();
+    const opts = bar.querySelectorAll('select option');
+    if (opts.length >= 2) { document.getElementById('compareA').selectedIndex = opts.length - 2; document.getElementById('compareB').selectedIndex = opts.length - 1; }
+    updateCompareView();
+  } else {
+    bar.classList.remove('show');
+    section.style.display = 'none';
+  }
+}
+function updateCompareOptions() {
+  const selA = document.getElementById('compareA');
+  const selB = document.getElementById('compareB');
+  const opts = bills.map(b => `<option value="${b.month}">${b.month}</option>`).join('');
+  selA.innerHTML = opts; selB.innerHTML = opts;
+}
+function updateCompareView() {
+  const ma = document.getElementById('compareA').value;
+  const mb = document.getElementById('compareB').value;
+  const a = bills.find(b => b.month === ma);
+  const b = bills.find(b => b.month === mb);
+  if (!a || !b) return;
+  const section = document.getElementById('compareSection');
+  section.style.display = '';
+  document.getElementById('compareAux').textContent = a.month + ' vs ' + b.month;
+  const diffTotal = b.total - a.total;
+  const diffElec = (b.elecUsage || 0) - (a.elecUsage || 0);
+  const elTotal = document.getElementById('compareTotalDiff');
+  const elElec = document.getElementById('compareElecDiff');
+  elTotal.textContent = (diffTotal >= 0 ? '+' : '') + '¥' + diffTotal.toFixed(0);
+  elTotal.className = 'compare-diff ' + (diffTotal > 0 ? 'up' : diffTotal < 0 ? 'down' : '');
+  document.getElementById('compareTotalSub').textContent = b.month + ' 比 ' + a.month + (diffTotal >= 0 ? ' 多花 ' : ' 少花 ') + '¥' + Math.abs(diffTotal).toFixed(0);
+  elElec.textContent = (diffElec >= 0 ? '+' : '') + diffElec.toFixed(0) + ' 度';
+  elElec.className = 'compare-diff ' + (diffElec > 0 ? 'up' : diffElec < 0 ? 'down' : '');
+  document.getElementById('compareElecSub').textContent = '用电变化' + (diffElec >= 0 ? '增加' : '减少') + ' ' + Math.abs(diffElec).toFixed(0) + ' 度';
+  const items = [
+    { label: '水费', a: a.waterFee, b: b.waterFee },
+    { label: '电费', a: a.elecFee, b: b.elecFee },
+    { label: '公摊电费', a: a.shareElec, b: b.shareElec },
+    { label: '管理费', a: a.mgmtFee, b: b.mgmtFee },
+    { label: '用水量', a: a.waterUsage || 0, b: b.waterUsage || 0, unit: ' 吨' },
+  ];
+  document.getElementById('compareList').innerHTML = items.map(it => {
+    const d = it.b - it.a;
+    const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+    const sign = d > 0 ? '+' : '';
+    const unit = it.unit || ' 元';
+    return `<div class="compare-item"><span class="compare-item-label">${it.label}</span><span class="compare-item-val ${cls}">${sign}${d.toFixed(it.unit ? 0 : 2)}${unit}</span></div>`;
+  }).join('');
+}
+
+/* ===== Chart → Table Interaction ===== */
+function highlightTableRow(chartIndex) {
+  const wrap = document.getElementById('tableWrap');
+  const rows = wrap.querySelectorAll('tbody tr');
+  if (!rows.length || chartIndex < 0 || chartIndex >= rows.length) return;
+  rows.forEach(r => r.classList.remove('row-highlight'));
+  const target = rows[chartIndex];
+  target.classList.add('row-highlight');
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => target.classList.remove('row-highlight'), 2500);
+}
+
+(async function() { await loadData(); render(); })();
+</script>
+</body>
+</html>
