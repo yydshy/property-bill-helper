@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>电耗子 · 物业账单管家</title>
 <meta name="description" content="智能物业账单管理，短信一键解析，可视化数据仪表盘，节能闯关游戏化">
+<meta name="theme-color" content="#d97757">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="电耗子">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23d97757'/><text x='16' y='24' font-size='18' text-anchor='middle' fill='white'>🐹</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='45' fill='%23d97757'/><text x='90' y='130' font-size='90' text-anchor='middle' fill='white'>🐹</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,6 +52,52 @@
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.3);
   --shadow-glow: 0 0 40px rgba(217,119,87,0.1);
 }
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg: #faf9f5;
+  --bg-soft: #f5f4f0;
+  --surface: #ffffff;
+  --surface-hover: #f8f7f3;
+  --surface-raised: #f2f1ec;
+  --border: #e8e6dc;
+  --border-hover: #d9d7cc;
+  --ink: #141413;
+  --ink-2: #5a5955;
+  --ink-3: #8c8a82;
+  --accent: #d97757;
+  --accent-2: #c96b5c;
+  --accent-dim: rgba(217,119,87,0.08);
+  --accent-border: rgba(217,119,87,0.25);
+  --accent-glow: 0 0 40px rgba(217,119,87,0.08);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 60px rgba(217,119,87,0.06);
+}
+
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(217,119,87,0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(106,155,204,0.03), transparent);
+}
+
+[data-theme="light"] .brand-logo {
+  box-shadow: 0 4px 20px rgba(217,119,87,0.25);
+}
+
+[data-theme="light"] .summary-item.primary .summary-value {
+  -webkit-text-fill-color: var(--accent);
+}
+
+[data-theme="light"] .kpi--primary .kpi-value {
+  -webkit-text-fill-color: var(--accent);
+}
+
+[data-theme="light"] .heatmap-level-1 { background: rgba(217,119,87,0.15); }
+[data-theme="light"] .heatmap-level-2 { background: rgba(217,119,87,0.25); }
+[data-theme="light"] .heatmap-level-3 { background: rgba(217,119,87,0.45); }
+[data-theme="light"] .heatmap-level-4 { background: rgba(217,119,87,0.7); }
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 html { scroll-behavior:smooth; }
 body {
@@ -84,6 +137,16 @@ body {
   flex-shrink: 0;
 }
 .brand-text { flex: 1; min-width: 0; }
+.theme-toggle {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-icon { font-size: 18px; transition: transform .3s ease; }
+.theme-toggle:hover .theme-icon { transform: rotate(20deg) scale(1.1); }
 .page-title {
   font-family: var(--font-display);
   font-size: 26px;
@@ -217,6 +280,87 @@ body {
 .input-card textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,0.08); }
 .input-row { display:flex; gap:12px; margin-top:14px; align-items:center; flex-wrap:wrap; }
 .input-hint { font-size:12px; color:var(--ink-3); }
+
+/* OCR Card */
+.ocr-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-top: 16px;
+}
+.ocr-card > label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 12px;
+  display: block;
+}
+.ocr-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  transition: all .2s ease;
+}
+.ocr-upload-area:hover, .ocr-upload-area.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.ocr-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 8px;
+  display: block;
+}
+.ocr-preview {
+  text-align: center;
+}
+.ocr-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+.ocr-progress {
+  padding: 16px;
+}
+.ocr-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-raised);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.ocr-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  width: 0%;
+  transition: width .3s ease;
+}
+.ocr-progress-text {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.ocr-result {
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+}
+.ocr-result-text {
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.ocr-result-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
 .input-shortcut {
   font-size:11px; color:var(--ink-3); background:rgba(255,255,255,0.04);
   padding:3px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit;
@@ -859,6 +1003,105 @@ tr.row-alert td { background:rgba(248,113,113,0.03); }
 .year-div { width: 1px; background: var(--border); }
 .year-foot { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--ink-3); display: flex; gap: 16px; flex-wrap: wrap; }
 
+/* Heatmap - GitHub style contribution graph */
+.heatmap-panel {
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+}
+.heatmap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.heatmap-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.heatmap-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.heatmap-months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+}
+.heatmap-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all .15s ease;
+  position: relative;
+}
+.heatmap-cell:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 10;
+}
+.heatmap-cell.has-data {
+  border-color: transparent;
+}
+.heatmap-level-0 { background: var(--surface-raised); border-color: var(--border); }
+.heatmap-level-1 { background: rgba(217,119,87,0.2); }
+.heatmap-level-2 { background: rgba(217,119,87,0.4); }
+.heatmap-level-3 { background: rgba(217,119,87,0.6); }
+.heatmap-level-4 { background: rgba(217,119,87,0.85); }
+.heatmap-stats {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.heatmap-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--ink);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+  z-index: 100;
+}
+.heatmap-cell:hover .heatmap-tooltip {
+  opacity: 1;
+}
+
 /* ===== Tier Analysis ===== */
 .tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; margin-bottom: 16px; }
 .tier-body { display: flex; gap: 24px; align-items: stretch; }
@@ -922,6 +1165,9 @@ tr.row-highlight td { background: rgba(245,166,35,.06) !important; }
       <h1 class="page-title">电耗子 · 账单管家</h1>
       <p class="page-subtitle">智能物业账单数据仪表盘</p>
     </div>
+    <button class="btn theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="切换主题">
+      <span class="theme-icon" id="themeIcon">🌙</span>
+    </button>
   </div>
 
   <!-- Actions -->
@@ -991,6 +1237,25 @@ tr.row-highlight td { background: rgba(245,166,35,.06) !important; }
         <span class="input-hint">粘贴后按 Ctrl + Enter 快捷添加</span>
         <span class="input-shortcut">Ctrl + Enter</span>
       </div>
+    </div>
+    <!-- OCR 图片识别 -->
+    <div class="ocr-card" id="ocrCard">
+      <label>📷 图片识别账单</label>
+      <div class="ocr-upload-area" id="ocrDropZone">
+        <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" onchange="handleOcrFile(event)">
+        <button class="btn" onclick="document.getElementById('ocrFileInput').click()">选择图片</button>
+        <span class="ocr-hint">或将图片拖拽至此区域</span>
+      </div>
+      <div class="ocr-preview" id="ocrPreview" style="display:none;">
+        <img id="ocrPreviewImg" alt="预览">
+        <button class="btn btn-accent" onclick="startOcr()" id="ocrBtn">🔍 开始识别</button>
+        <button class="btn" onclick="clearOcr()">清除</button>
+      </div>
+      <div class="ocr-progress" id="ocrProgress" style="display:none;">
+        <div class="ocr-progress-bar"><div class="ocr-progress-fill" id="ocrProgressFill"></div></div>
+        <span id="ocrProgressText">识别中...</span>
+      </div>
+      <div class="ocr-result" id="ocrResult" style="display:none;"></div>
     </div>
   </div>
 
@@ -1069,6 +1334,29 @@ tr.row-highlight td { background: rgba(245,166,35,.06) !important; }
         <span id="yearPeak">用电高峰月：—</span>
         <span id="yearLow">用电最低月：—</span>
         <span id="yearYoy">同比：—</span>
+      </div>
+    </div>
+    <!-- 年度用电热力图 -->
+    <div class="heatmap-panel" id="heatmapPanel" style="display:none;">
+      <div class="heatmap-header">
+        <span class="heatmap-title" id="heatmapYear">2026</span>
+        <span class="heatmap-legend">
+          <span class="heatmap-legend-item"><span class="heatmap-cell heatmap-level-0"></span>少</span>
+          <span class="heatmap-legend-item"><span class="heatmap-cell heatmap-level-1"></span></span>
+          <span class="heatmap-legend-item"><span class="heatmap-cell heatmap-level-2"></span></span>
+          <span class="heatmap-legend-item"><span class="heatmap-cell heatmap-level-3"></span></span>
+          <span class="heatmap-legend-item"><span class="heatmap-cell heatmap-level-4"></span>多</span>
+        </span>
+      </div>
+      <div class="heatmap-months">
+        <span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span>
+        <span>7月</span><span>8月</span><span>9月</span><span>10月</span><span>11月</span><span>12月</span>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-stats">
+        <span id="heatmapStatMax">最高：— 度</span>
+        <span id="heatmapStatAvg">平均：— 度/月</span>
+        <span id="heatmapStatTotal">累计：— 度</span>
       </div>
     </div>
   </div>
@@ -1365,6 +1653,31 @@ function revealSections() {
   });
 }
 
+// ===== Theme Toggle =====
+let currentTheme = 'dark';
+function initTheme() {
+  const saved = localStorage.getItem('pb_theme');
+  currentTheme = saved || 'dark';
+  applyTheme(currentTheme);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  // Update Chart.js colors
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.color = theme === 'dark' ? '#6b695f' : '#5a5955';
+    Chart.defaults.borderColor = theme === 'dark' ? '#2a2a26' : '#e8e6dc';
+  }
+}
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('pb_theme', currentTheme);
+  applyTheme(currentTheme);
+  // Re-render charts with new theme colors
+  if (bills.length) render();
+}
+
 const GIST_API = 'https://api.github.com';
 const GIST_FILENAME = 'property-bills-f3-2403.json';
 const GIST_DESC = '物业账单数据';
@@ -1471,6 +1784,7 @@ function setSyncStatus(status, tooltip) {
 }
 
 async function loadData() {
+  initTheme();
   loadGistConfig();
   loadWeatherCache();
   try { const d = localStorage.getItem(STORAGE_KEY); if (d) bills = JSON.parse(d); } catch(e) {}
@@ -1533,6 +1847,151 @@ function showParseError(msg) { const el = document.getElementById('parseError');
 function hideParseError() { const el = document.getElementById('parseError'); el.classList.remove('show'); }
 
 function clearSmsInput() { document.getElementById('smsInput').value = ''; hideParseError(); document.getElementById('smsInput').focus(); document.querySelector('.clear-btn').classList.remove('show'); }
+
+/* ===== OCR Functions ===== */
+let ocrImageData = null;
+let tesseractLoaded = false;
+
+function handleOcrFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    ocrImageData = e.target.result;
+    document.getElementById('ocrPreviewImg').src = ocrImageData;
+    document.getElementById('ocrDropZone').style.display = 'none';
+    document.getElementById('ocrPreview').style.display = '';
+    document.getElementById('ocrResult').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearOcr() {
+  ocrImageData = null;
+  document.getElementById('ocrFileInput').value = '';
+  document.getElementById('ocrDropZone').style.display = '';
+  document.getElementById('ocrPreview').style.display = 'none';
+  document.getElementById('ocrProgress').style.display = 'none';
+  document.getElementById('ocrResult').style.display = 'none';
+}
+
+async function startOcr() {
+  if (!ocrImageData) {
+    showToast('请先选择图片');
+    return;
+  }
+  const btn = document.getElementById('ocrBtn');
+  btn.disabled = true;
+  document.getElementById('ocrPreview').style.display = 'none';
+  document.getElementById('ocrProgress').style.display = '';
+  const progressFill = document.getElementById('ocrProgressFill');
+  const progressText = document.getElementById('ocrProgressText');
+
+  // Load Tesseract.js dynamically
+  if (!tesseractLoaded) {
+    progressText.textContent = '加载 OCR 引擎...';
+    progressFill.style.width = '10%';
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+      tesseractLoaded = true;
+    } catch (e) {
+      showToast('OCR 引擎加载失败，请检查网络');
+      clearOcr();
+      return;
+    }
+  }
+
+  progressText.textContent = '识别中...';
+  progressFill.style.width = '20%';
+
+  try {
+    const result = await Tesseract.recognize(ocrImageData, 'chi_sim+eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          const pct = Math.round(m.progress * 80 + 20);
+          progressFill.style.width = pct + '%';
+          progressText.textContent = `识别中... ${pct}%`;
+        }
+      }
+    });
+    progressFill.style.width = '100%';
+    progressText.textContent = '识别完成';
+
+    const text = result.data.text;
+    showOcrResult(text);
+  } catch (e) {
+    showToast('识别失败：' + e.message);
+    clearOcr();
+  }
+  btn.disabled = false;
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function showOcrResult(text) {
+  document.getElementById('ocrProgress').style.display = 'none';
+  document.getElementById('ocrResult').style.display = '';
+  const resultDiv = document.getElementById('ocrResult');
+  resultDiv.innerHTML = `
+    <div class="ocr-result-text">${text}</div>
+    <div class="ocr-result-actions">
+      <button class="btn btn-accent" onclick="useOcrText()">使用此文本</button>
+      <button class="btn" onclick="clearOcr()">清除</button>
+    </div>
+  `;
+}
+
+function useOcrText() {
+  const resultText = document.querySelector('.ocr-result-text');
+  if (resultText) {
+    document.getElementById('smsInput').value = resultText.textContent;
+    document.getElementById('smsInput').focus();
+    clearOcr();
+    showToast('已填入文本框，请点击「提取并添加」');
+  }
+}
+
+// Drag and drop support
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('ocrDropZone');
+  if (!dropZone) return;
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const input = document.getElementById('ocrFileInput');
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      handleOcrFile({ target: input });
+    } else {
+      showToast('请拖入图片文件');
+    }
+  });
+});
 
 const _sms = document.getElementById('smsInput');
 const _clr = document.querySelector('.clear-btn');
@@ -1783,7 +2242,7 @@ function updateGamification() {
   const latest   = bills[n - 1];
   const prev     = n >= 2 ? bills[n - 2] : null;
 
-  // Badges
+  // Badges - Extended achievement system
   const BADGES = [
     { icon:'🍃', name:'节能达人',   desc:'连续 3 个月用电低于月均',
       check:() => { let s=0; for(let i=n-1;i>=0;i--){ if((bills[i].elecUsage||0)<avgElec) s++; else break; if(s>=3) return true; } return false; }},
@@ -1809,6 +2268,25 @@ function updateGamification() {
       check:() => { const yr=latest.month.split('-')[0]; const yb=bills.filter(b=>b.month.startsWith(yr)); return yb.length>=6 && yb.reduce((s,b)=>s+(b.elecUsage||0),0)<4000; }},
     { icon:'🥚', name:'孵化！',     desc:'隐藏：记账满 12 个月',
       check:() => n>=12},
+    // New achievements - Extended
+    { icon:'🌟', name:'新手上路',   desc:'记账达到 3 个月',
+      check:() => n>=3},
+    { icon:'📊', name:'数据达人',   desc:'记账达到 24 个月',
+      check:() => n>=24},
+    { icon:'💎', name:'电费大师',   desc:'单月电费低于 300 元',
+      check:() => bills.some(b=>(b.elecFee||0)<300)},
+    { icon:'🌈', name:'四季俱全',   desc:'春夏秋冬四季均有记录',
+      check:() => { const ms=bills.map(b=>+b.month.split('-')[1]); return [3,4,5].some(m=>ms.includes(m))&&[6,7,8].some(m=>ms.includes(m))&&[9,10,11].some(m=>ms.includes(m))&&[12,1,2].some(m=>ms.includes(m)); }},
+    { icon:'⚡', name:'阶梯高手',   desc:'全年未进入第三档电价',
+      check:() => { const yr=latest.month.split('-')[0]; const yb=bills.filter(b=>b.month.startsWith(yr)); return yb.length>=6 && yb.every(b=>(b.elecUsage||0)<=(+b.month.split('-')[1]>=5&&+b.month.split('-')[1]<=10?600:400)); }},
+    { icon:'💰', name:'万元大户',   desc:'累计总费用超过 10000 元',
+      check:() => bills.reduce((s,b)=>s+(b.total||0),0)>=10000},
+    { icon:'🎉', name:'完美账单',   desc:'单月账单数据完整（水电费+管理费+公摊）',
+      check:() => bills.some(b=>(b.elecFee||0)>0&&(b.waterFee||0)>0&&(b.mgmtFee||0)>0&&(b.shareElec||0)>0)},
+    { icon:'🔥', name:'连续打卡',   desc:'连续 12 个月均有账单记录',
+      check:() => { if(n<12) return false; const sorted=bills.slice(-12).map(b=>b.month); for(let i=1;i<12;i++){ const prev=sorted[i-1].split('-'); const curr=sorted[i].split('-'); const pm=+prev[1],cm=+curr[1]; const py=+prev[0],cy=+curr[0]; if(!(cy===py&&cm===pm+1||cy===py+1&&pm===12&&cm===1)) return false; } return true; }},
+    { icon:'🏆', name:'年度冠军',   desc:'某年度每月费用均低于上年同月',
+      check:() => { if(n<12) return false; const yr=latest.month.split('-')[0]; const yb=bills.filter(b=>b.month.startsWith(yr)); if(yb.length<6) return false; const pyr=String(+yr-1); const pyb=bills.filter(b=>b.month.startsWith(pyr)); if(pyb.length<3) return false; return yb.every(b=>{ const pm=b.month.split('-')[1]; const pb=pyb.find(p=>p.month.endsWith(pm)); return !pb||b.total<pb.total; }); }},
   ];
   const ev  = BADGES.map(b => ({ ...b, on: b.check() }));
   const cnt = ev.filter(b => b.on).length;
@@ -2594,6 +3072,68 @@ function updateYearSummary() {
     document.getElementById('yearYoy').textContent = '同比：无去年数据';
     document.getElementById('yearYoy').className = '';
   }
+  // Render heatmap
+  renderHeatmap(yr, yb);
+}
+
+/* ===== Heatmap (GitHub Contribution Style) ===== */
+function renderHeatmap(year, yearBills) {
+  const panel = document.getElementById('heatmapPanel');
+  if (!yearBills.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  document.getElementById('heatmapYear').textContent = year + ' 年用电热力图';
+
+  // Build 12-month data map
+  const monthData = {};
+  for (let m = 1; m <= 12; m++) {
+    monthData[m] = { usage: 0, month: `${year}-${String(m).padStart(2,'0')}` };
+  }
+  yearBills.forEach(b => {
+    const m = +b.month.split('-')[1];
+    if (monthData[m]) monthData[m].usage = b.elecUsage || 0;
+  });
+
+  // Calculate levels (5 levels)
+  const usages = yearBills.map(b => b.elecUsage || 0).filter(u => u > 0);
+  const maxU = Math.max(...usages, 1);
+  const minU = Math.min(...usages, 0);
+  const range = maxU - minU || 1;
+
+  // Render grid
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const data = monthData[m];
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    if (data.usage > 0) {
+      cell.classList.add('has-data');
+      // Determine level (0-4)
+      let level = 0;
+      if (data.usage > 0) {
+        const normalized = (data.usage - minU) / range;
+        if (normalized < 0.2) level = 1;
+        else if (normalized < 0.4) level = 2;
+        else if (normalized < 0.7) level = 3;
+        else level = 4;
+      }
+      cell.classList.add(`heatmap-level-${level}`);
+      // Add tooltip
+      const tip = document.createElement('span');
+      tip.className = 'heatmap-tooltip';
+      tip.textContent = `${data.month} · ${data.usage} 度`;
+      cell.appendChild(tip);
+    }
+    grid.appendChild(cell);
+  }
+
+  // Stats
+  const maxElec = Math.max(...usages);
+  const avgElec = usages.length ? (usages.reduce((a,b)=>a+b,0) / usages.length) : 0;
+  const totalElec = usages.reduce((a,b)=>a+b,0);
+  document.getElementById('heatmapStatMax').textContent = `最高：${maxElec} 度`;
+  document.getElementById('heatmapStatAvg').textContent = `平均：${avgElec.toFixed(1)} 度/月`;
+  document.getElementById('heatmapStatTotal').textContent = `累计：${totalElec} 度`;
 }
 
 /* ===== Tier Analysis (Guangzhou) ===== */
@@ -2718,6 +3258,23 @@ function highlightTableRow(chartIndex) {
   target.classList.add('row-highlight');
   target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   setTimeout(() => target.classList.remove('row-highlight'), 2500);
+}
+
+// ===== PWA Service Worker Registration =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(reg => {
+      console.log('电耗子 Service Worker 注册成功');
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showToast('应用已更新，刷新页面即可使用新版本');
+          }
+        };
+      };
+    })
+    .catch(err => console.log('Service Worker 注册失败:', err));
 }
 
 (async function() {
