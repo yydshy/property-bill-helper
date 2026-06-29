@@ -54,6 +54,41 @@
   body.elder-mode .tab svg { width: calc(28px * var(--font-scale)); height: calc(28px * var(--font-scale)); }
   body.elder-mode .tab { font-size: calc(12px * var(--font-scale)); }
 
+  /* 查看模式（只读） */
+  body.view-mode .tab-bar { display: none; }
+  body.view-mode .header h1::after { content: '（查看）'; font-size: 14px; color: var(--text-secondary); margin-left: 8px; }
+  body.view-mode .month-selector select { display: none; }
+  body.view-mode .month-stats { display: none; }
+  body.view-mode .room input { display: none; }
+  body.view-mode .room-last { display: none; }
+  body.view-mode .room-info { text-align: left; }
+  body.view-mode .room-usage { font-size: 16px; }
+  body.view-mode .room-num { font-size: 20px; width: 70px; }
+  body.view-mode .room { padding: 14px 16px; }
+  body.view-mode body { padding-bottom: 20px; }
+
+  .view-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--success-light);
+    color: var(--success);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 10px;
+  }
+
+  .view-total {
+    background: var(--card);
+    margin: 12px;
+    padding: 20px;
+    border-radius: 14px;
+    text-align: center;
+    border: 2px solid var(--primary);
+  }
+  .view-total-num { font-size: 36px; font-weight: 800; color: var(--primary); }
+  .view-total-label { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   html, body {
@@ -514,6 +549,11 @@
   </div>
 </div>
 
+<div class="view-total" id="viewTotal" style="display:none">
+  <div class="view-total-num" id="viewTotalNum">0</div>
+  <div class="view-total-label">本月合计用电（度）</div>
+</div>
+
 <!-- 抄表 tab -->
 <div class="tab-content active" id="tab-record">
   <div id="floorList"></div>
@@ -713,6 +753,77 @@
     renderRecord();
     renderHistory();
     updateStats();
+  }
+
+  // ============== 渲染：查看模式 ==============
+  function renderViewMode(data) {
+    document.body.classList.add('view-mode');
+
+    // 显示合计
+    const totalEl = document.getElementById('viewTotal');
+    totalEl.style.display = 'block';
+    document.getElementById('viewTotalNum').textContent = data.total;
+
+    // 设置月份
+    currentMonth = data.month;
+    document.getElementById('monthSelect').innerHTML = `<option value="${data.month}">${fmtMonth(data.month)}</option>`;
+
+    // 渲染只读表格
+    const list = document.getElementById('floorList');
+    const floors = {};
+    APARTMENTS.forEach(a => {
+      if (!floors[a.floor]) floors[a.floor] = [];
+      floors[a.floor].push(a);
+    });
+
+    list.innerHTML = Object.keys(floors).sort().map(f => {
+      const rooms = floors[f];
+      const roomsHtml = rooms.map((a, idx) => {
+        const rd = data.readings[a.num];
+        if (!rd) {
+          return `
+            <div class="room" data-num="${a.num}">
+              <div class="room-num">${a.num}</div>
+              <div class="room-info">
+                <div class="room-usage" style="color:var(--text-tertiary)">未抄表</div>
+              </div>
+            </div>
+          `;
+        }
+
+        const current = rd.current;
+        const prev = rd.prev;
+        let usageHtml = '';
+        let usageNum = '-';
+
+        if (prev != null && prev !== '' && !isNaN(current) && !isNaN(prev)) {
+          usageNum = (parseFloat(current) - parseFloat(prev)).toFixed(1);
+          const cls = parseFloat(usageNum) < 0 ? 'danger' : 'has-value';
+          usageHtml = `<div class="room-usage ${cls}">用电 ${usageNum} 度</div>`;
+        } else {
+          usageHtml = `<div class="room-usage first">首次抄表</div>`;
+        }
+
+        return `
+          <div class="room" data-num="${a.num}">
+            <div class="room-num">${a.num}</div>
+            <div class="room-info">
+              ${usageHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="floor-section" style="--floor-color: ${FLOOR_COLORS[f]}; margin-bottom:8px;">
+          <div class="floor-header" style="padding:12px 16px;">
+            <span class="floor-tag">${f}F</span>
+            <span>${f} 层</span>
+          </div>
+          <div class="rooms">${roomsHtml}</div>
+        </div>
+      `;
+    }).join('');
   }
 
   function renderRecord() {
@@ -947,42 +1058,69 @@
       return;
     }
 
-    let text = `${fmtMonth(currentMonth)} 抄表数据\n`;
-    text += '='.repeat(30) + '\n\n';
-
+    // 计算合计用量
     let totalUsage = 0;
+    const shareData = {
+      month: currentMonth,
+      readings: {},
+      total: 0
+    };
+
     filled.forEach(a => {
       const v = state.readings[a.num][currentMonth];
       const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
-      let usage = '';
+      shareData.readings[a.num] = { current: v, prev: prev || null };
+      if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
+        totalUsage += parseFloat(v) - parseFloat(prev);
+      }
+    });
+    shareData.total = totalUsage.toFixed(1);
+
+    // 压缩并编码到URL
+    const jsonStr = JSON.stringify(shareData);
+    const encoded = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+    const shareUrl = location.href.split('?')[0] + '?d=' + encoded;
+
+    // 也生成文本版本
+    let text = `${fmtMonth(currentMonth)} 抄表数据\n`;
+    text += '='.repeat(20) + '\n\n';
+    filled.forEach(a => {
+      const v = state.readings[a.num][currentMonth];
+      const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
+      let usage = '-';
       if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
         usage = (parseFloat(v) - parseFloat(prev)).toFixed(1);
-        totalUsage += parseFloat(usage);
-      } else {
-        usage = '-';
       }
-      text += `${a.num}号:\n`;
-      text += `  读数: ${v}\n`;
-      if (prev) text += `  上月: ${prev}\n`;
-      text += `  用电: ${usage} 度\n\n`;
+      text += `${a.num}: ${usage} 度\n`;
     });
-
-    text += '='.repeat(30) + '\n';
-    text += `已抄 ${filled.length} / ${APARTMENTS.length} 户\n`;
-    text += `本月合计: ${totalUsage.toFixed(1)} 度\n`;
-    text += '\n' + '生成时间: ' + new Date().toLocaleString('zh-CN');
+    text += '\n合计: ' + totalUsage.toFixed(1) + ' 度\n';
+    text += '时间: ' + new Date().toLocaleString('zh-CN');
 
     const body = `
-      <textarea id="shareText" style="width:100%;height:300px;padding:12px;font-size:14px;font-family:monospace;border:1px solid var(--border);border-radius:10px;resize:none;background:#fafafa;" readonly>${text}</textarea>
-      <div style="margin-top:12px;text-align:right;font-size:12px;color:var(--text-secondary);">点击文本框可全选复制</div>
+      <div style="margin-bottom:16px;padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
+        <div style="font-weight:600;margin-bottom:8px;">📱 发链接给老人查看</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">老人点开链接即可看到抄表结果，无需任何操作</div>
+        <textarea id="shareUrl" style="width:100%;height:60px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${shareUrl}</textarea>
+      </div>
+      <div style="padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
+        <div style="font-weight:600;margin-bottom:8px;">📝 或复制文本发送</div>
+        <textarea id="shareText" style="width:100%;height:200px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${text}</textarea>
+      </div>
     `;
 
-    showModal('分享抄表数据', body, [
-      { text: '复制文本', class: 'primary', onclick: () => {
+    showModal('分享当月数据', body, [
+      { text: '复制链接', class: 'primary', onclick: () => {
+        const ta = document.getElementById('shareUrl');
+        ta.select();
+        document.execCommand('copy');
+        showToast('链接已复制');
+        closeModal();
+      }},
+      { text: '复制文本', class: 'ghost', onclick: () => {
         const ta = document.getElementById('shareText');
         ta.select();
         document.execCommand('copy');
-        showToast('已复制到剪贴板');
+        showToast('文本已复制');
         closeModal();
       }},
       { text: '关闭', class: 'ghost', onclick: closeModal }
@@ -1131,9 +1269,31 @@
   });
 
   // ============== 启动 ==============
-  load();
-  buildMonthOptions();
-  render();
+  // 检查URL参数，进入查看模式
+  function parseViewData() {
+    const params = new URLSearchParams(location.search);
+    const d = params.get('d');
+    if (d) {
+      try {
+        const jsonStr = decodeURIComponent(atob(d).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        const data = JSON.parse(jsonStr);
+        if (data.month && data.readings) {
+          renderViewMode(data);
+          return true;
+        }
+      } catch (e) {
+        console.error('解析分享数据失败:', e);
+        showToast('链接数据已过期');
+      }
+    }
+    return false;
+  }
+
+  if (!parseViewData()) {
+    load();
+    buildMonthOptions();
+    render();
+  }
 
   const elderMode = localStorage.getItem('elder-mode');
   if (elderMode === '1') {
