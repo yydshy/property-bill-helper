@@ -29,7 +29,30 @@
     --floor-4: #fce7f3;
     --floor-5: #e0e7ff;
     --floor-6: #fed7aa;
+    --font-scale: 1;
   }
+
+  body.elder-mode {
+    --font-scale: 1.2;
+    font-size: calc(15px * var(--font-scale));
+  }
+
+  body.elder-mode .header h1 { font-size: calc(22px * var(--font-scale)); }
+  body.elder-mode .month-selector select { font-size: calc(15px * var(--font-scale)); padding: calc(10px * var(--font-scale)) calc(12px * var(--font-scale)); }
+  body.elder-mode .month-stats { font-size: calc(13px * var(--font-scale)); padding: calc(6px * var(--font-scale)) calc(12px * var(--font-scale)); }
+  body.elder-mode .floor-header { font-size: calc(15px * var(--font-scale)); padding: calc(13px * var(--font-scale)) calc(16px * var(--font-scale)); }
+  body.elder-mode .floor-tag { width: calc(36px * var(--font-scale)); height: calc(36px * var(--font-scale)); font-size: calc(16px * var(--font-scale)); }
+  body.elder-mode .room-num { font-size: calc(18px * var(--font-scale)); width: calc(56px * var(--font-scale)); }
+  body.elder-mode .room-last { font-size: calc(13px * var(--font-scale)); }
+  body.elder-mode .room-usage { font-size: calc(15px * var(--font-scale)); min-height: calc(24px * var(--font-scale)); }
+  body.elder-mode .room input { font-size: calc(18px * var(--font-scale)); width: calc(110px * var(--font-scale)); padding: calc(10px * var(--font-scale)); }
+  body.elder-mode .history-month-title { font-size: calc(18px * var(--font-scale)); }
+  body.elder-mode .history-month-total { font-size: calc(16px * var(--font-scale)); }
+  body.elder-mode .history-row { font-size: calc(16px * var(--font-scale)); padding: calc(13px * var(--font-scale)) calc(16px * var(--font-scale)); }
+  body.elder-mode .settings-item { font-size: calc(17px * var(--font-scale)); padding: calc(16px * var(--font-scale)) calc(16px * var(--font-scale)); }
+  body.elder-mode .settings-item .icon { width: calc(40px * var(--font-scale)); height: calc(40px * var(--font-scale)); font-size: calc(20px * var(--font-scale)); }
+  body.elder-mode .tab svg { width: calc(28px * var(--font-scale)); height: calc(28px * var(--font-scale)); }
+  body.elder-mode .tab { font-size: calc(12px * var(--font-scale)); }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -505,6 +528,11 @@
 <div class="tab-content" id="tab-settings">
   <div class="settings-group">
     <div class="settings-title">数据管理</div>
+    <button class="settings-item" onclick="shareData()">
+      <span class="icon">📤</span>
+      <span class="label">分享当月数据（发给老人）</span>
+      <span class="arrow-r">›</span>
+    </button>
     <button class="settings-item" onclick="exportCSV()">
       <span class="icon">📄</span>
       <span class="label">导出 CSV（Excel 可打开）</span>
@@ -521,6 +549,15 @@
       <span class="arrow-r">›</span>
     </button>
     <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-title">显示设置</div>
+    <button class="settings-item" id="elderModeBtn" onclick="toggleElderMode()">
+      <span class="icon">👴</span>
+      <span class="label">老人模式（大字版）</span>
+      <span class="arrow-r">›</span>
+    </button>
   </div>
 
   <div class="settings-group">
@@ -899,6 +936,66 @@
   }
 
   // ============== 导出 / 导入 ==============
+  function shareData() {
+    const filled = APARTMENTS.filter(a => {
+      const v = state.readings[a.num]?.[currentMonth];
+      return v != null && v !== '';
+    });
+
+    if (filled.length === 0) {
+      showToast('本月暂无抄表数据');
+      return;
+    }
+
+    let text = `${fmtMonth(currentMonth)} 抄表数据\n`;
+    text += '='.repeat(30) + '\n\n';
+
+    let totalUsage = 0;
+    filled.forEach(a => {
+      const v = state.readings[a.num][currentMonth];
+      const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
+      let usage = '';
+      if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
+        usage = (parseFloat(v) - parseFloat(prev)).toFixed(1);
+        totalUsage += parseFloat(usage);
+      } else {
+        usage = '-';
+      }
+      text += `${a.num}号:\n`;
+      text += `  读数: ${v}\n`;
+      if (prev) text += `  上月: ${prev}\n`;
+      text += `  用电: ${usage} 度\n\n`;
+    });
+
+    text += '='.repeat(30) + '\n';
+    text += `已抄 ${filled.length} / ${APARTMENTS.length} 户\n`;
+    text += `本月合计: ${totalUsage.toFixed(1)} 度\n`;
+    text += '\n' + '生成时间: ' + new Date().toLocaleString('zh-CN');
+
+    const body = `
+      <textarea id="shareText" style="width:100%;height:300px;padding:12px;font-size:14px;font-family:monospace;border:1px solid var(--border);border-radius:10px;resize:none;background:#fafafa;" readonly>${text}</textarea>
+      <div style="margin-top:12px;text-align:right;font-size:12px;color:var(--text-secondary);">点击文本框可全选复制</div>
+    `;
+
+    showModal('分享抄表数据', body, [
+      { text: '复制文本', class: 'primary', onclick: () => {
+        const ta = document.getElementById('shareText');
+        ta.select();
+        document.execCommand('copy');
+        showToast('已复制到剪贴板');
+        closeModal();
+      }},
+      { text: '关闭', class: 'ghost', onclick: closeModal }
+    ]);
+  }
+
+  function toggleElderMode() {
+    const body = document.body;
+    const isElder = body.classList.toggle('elder-mode');
+    localStorage.setItem('elder-mode', isElder ? '1' : '0');
+    showToast(isElder ? '已开启老人模式' : '已关闭老人模式');
+  }
+
   function exportCSV() {
     const months = new Set();
     Object.values(state.readings).forEach(rm => Object.keys(rm).forEach(m => months.add(m)));
@@ -1037,6 +1134,11 @@
   load();
   buildMonthOptions();
   render();
+
+  const elderMode = localStorage.getItem('elder-mode');
+  if (elderMode === '1') {
+    document.body.classList.add('elder-mode');
+  }
 </script>
 
 </body>
