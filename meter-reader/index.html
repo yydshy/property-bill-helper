@@ -725,9 +725,18 @@
         state = JSON.parse(raw);
         if (!state.readings) state.readings = {};
       } else {
-        state.readings = JSON.parse(JSON.stringify(INITIAL_DATA));
-        save();
+        state.readings = {};
       }
+      // 合并初始数据（确保3月数据总是存在）
+      for (const [num, months] of Object.entries(INITIAL_DATA)) {
+        if (!state.readings[num]) state.readings[num] = {};
+        for (const [month, value] of Object.entries(months)) {
+          if (!state.readings[num][month]) {
+            state.readings[num][month] = value;
+          }
+        }
+      }
+      save();
     } catch (e) { console.error(e); }
   }
 
