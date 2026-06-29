@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2563eb">
+<title>抄表助手</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --text: #1a1a1a;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --success-light: #d1fae5;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --floor-1: #fef3c7;
+    --floor-2: #dbeafe;
+    --floor-3: #d1fae5;
+    --floor-4: #fce7f3;
+    --floor-5: #e0e7ff;
+    --floor-6: #fed7aa;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Header */
+  .header {
+    background: var(--card);
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header h1 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .month-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .month-selector select {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    background: #fff;
+    color: var(--text);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3e%3cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  .month-stats {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Floor section */
+  .floor-section {
+    margin: 12px;
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .floor-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--floor-color, var(--bg));
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .floor-header .floor-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 8px;
+    margin-right: 10px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .floor-header .floor-stats {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .floor-header .arrow {
+    margin-left: 6px;
+    transition: transform 0.2s;
+    color: var(--text-tertiary);
+  }
+
+  .floor-section.collapsed .arrow { transform: rotate(-90deg); }
+  .floor-section.collapsed .rooms { display: none; }
+
+  /* Room card */
+  .rooms {
+    padding: 0 12px 12px;
+  }
+
+  .room {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-top: 10px;
+    background: #fafafa;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    gap: 12px;
+  }
+
+  .room:focus-within {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  .room.saved {
+    background: var(--success-light);
+  }
+
+  .room-num {
+    flex-shrink: 0;
+    width: 52px;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--text);
+  }
+
+  .room-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .room-last {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+
+  .room-usage {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-height: 18px;
+  }
+
+  .room-usage.has-value { color: var(--success); }
+  .room-usage.warn { color: var(--warning); }
+  .room-usage.danger { color: var(--danger); }
+  .room-usage.first { color: var(--text-tertiary); font-weight: 500; }
+
+  .room input {
+    width: 110px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: right;
+    background: #fff;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .room input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  /* Tabs */
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    z-index: 20;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .tab.active { color: var(--primary); }
+  .tab svg { width: 24px; height: 24px; margin-bottom: 2px; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* History tab */
+  .history-month {
+    margin: 12px;
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .history-month-header {
+    padding: 14px 16px;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .history-month-title { font-weight: 700; font-size: 16px; }
+  .history-month-total { font-size: 14px; font-weight: 600; opacity: 0.9; }
+
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .history-row:first-child { border-top: none; }
+  .history-row-num { font-weight: 600; }
+  .history-row-val { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .history-row-usage { font-weight: 600; color: var(--success); font-variant-numeric: tabular-nums; }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+  }
+  .empty .emoji { font-size: 48px; margin-bottom: 12px; }
+
+  /* Settings tab */
+  .settings-group {
+    margin: 12px;
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .settings-title {
+    padding: 14px 16px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .settings-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    width: 100%;
+    text-align: left;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    gap: 12px;
+  }
+  .settings-item:first-child { border-top: none; }
+
+  .settings-item .icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 8px;
+    font-size: 16px;
+  }
+
+  .settings-item .label { flex: 1; font-weight: 500; }
+  .settings-item .arrow-r { color: var(--text-tertiary); }
+  .settings-item.danger { color: var(--danger); }
+  .settings-item.danger .icon { background: var(--danger-light); color: var(--danger); }
+
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Modal */
+  .modal-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-mask.show { opacity: 1; pointer-events: auto; }
+
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 17px;
+  }
+
+  .modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.danger { background: var(--danger); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--primary); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 抄表助手</h1>
+  <div class="month-selector">
+    <select id="monthSelect"></select>
+    <span class="month-stats" id="monthStats">0 / 28</span>
+  </div>
+</div>
+
+<!-- 抄表 tab -->
+<div class="tab-content active" id="tab-record">
+  <div id="floorList"></div>
+</div>
+
+<!-- 历史 tab -->
+<div class="tab-content" id="tab-history">
+  <div id="historyList"></div>
+</div>
+
+<!-- 设置 tab -->
+<div class="tab-content" id="tab-settings">
+  <div class="settings-group">
+    <div class="settings-title">数据管理</div>
+    <button class="settings-item" onclick="exportCSV()">
+      <span class="icon">📄</span>
+      <span class="label">导出 CSV（Excel 可打开）</span>
+      <span class="arrow-r">›</span>
+    </button>
+    <button class="settings-item" onclick="exportJSON()">
+      <span class="icon">💾</span>
+      <span class="label">备份全部数据（JSON）</span>
+      <span class="arrow-r">›</span>
+    </button>
+    <button class="settings-item" onclick="document.getElementById('importInput').click()">
+      <span class="icon">📥</span>
+      <span class="label">从备份恢复</span>
+      <span class="arrow-r">›</span>
+    </button>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-title">添加月份</div>
+    <button class="settings-item" onclick="addCustomMonth()">
+      <span class="icon">➕</span>
+      <span class="label">新增历史月份</span>
+      <span class="arrow-r">›</span>
+    </button>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-title">危险操作</div>
+    <button class="settings-item danger" onclick="clearMonth()">
+      <span class="icon">🗑</span>
+      <span class="label">清空当月数据</span>
+      <span class="arrow-r">›</span>
+    </button>
+    <button class="settings-item danger" onclick="clearAll()">
+      <span class="icon">⚠️</span>
+      <span class="label">清空全部数据</span>
+      <span class="arrow-r">›</span>
+    </button>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-title">关于</div>
+    <div style="padding: 8px 16px 16px; color: var(--text-secondary); font-size: 13px; line-height: 1.7;">
+      抄表助手 v1.0<br>
+      28 户预配置 · 数据存本机 · 支持离线使用<br>
+      <span style="color: var(--text-tertiary);">建议每月导出 CSV 备份到网盘</span>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="record">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    抄表
+  </button>
+  <button class="tab" data-tab="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+    历史
+  </button>
+  <button class="tab" data-tab="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    设置
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-mask" id="modal">
+  <div class="modal">
+    <div class="modal-header" id="modalTitle"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script>
+  // ============== 配置 ==============
+  const APARTMENTS = [
+    ...['101','102','103'].map(n => ({ num: n, floor: 1 })),
+    ...['201','202','203','204'].map(n => ({ num: n, floor: 2 })),
+    ...['301','302','303','304','305','306'].map(n => ({ num: n, floor: 3 })),
+    ...['401','402','403','404','405','406'].map(n => ({ num: n, floor: 4 })),
+    ...['501','502','503','504','505','506'].map(n => ({ num: n, floor: 5 })),
+    ...['601','602','603'].map(n => ({ num: n, floor: 6 })),
+  ];
+
+  const FLOOR_COLORS = {
+    1: 'var(--floor-1)', 2: 'var(--floor-2)', 3: 'var(--floor-3)',
+    4: 'var(--floor-4)', 5: 'var(--floor-5)', 6: 'var(--floor-6)',
+  };
+
+  const STORAGE_KEY = 'meter-reader-data-v1';
+  const CURRENT_MONTH_KEY = 'meter-reader-current-month';
+
+  // ============== 状态 ==============
+  let state = {
+    // readings: { "101": { "2025-12": 1234.5, "2026-01": 1289.3, ... }, ... }
+    readings: {},
+  };
+  let currentMonth = ''; // "2025-12"
+
+  // ============== 存储 ==============
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) state = JSON.parse(raw);
+      if (!state.readings) state.readings = {};
+    } catch (e) { console.error(e); }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ============== 工具 ==============
+  function prevMonth(ym) {
+    const [y, m] = ym.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function fmtMonth(ym) {
+    const [y, m] = ym.split('-');
+    return `${y}年${parseInt(m)}月`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  // ============== 月份选择器 ==============
+  function buildMonthOptions() {
+    const sel = document.getElementById('monthSelect');
+    const months = new Set();
+    Object.values(state.readings).forEach(rm => Object.keys(rm).forEach(m => months.add(m)));
+    // 默认当前月和过去 3 个月
+    const now = new Date();
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const arr = [...months].sort().reverse();
+    sel.innerHTML = arr.map(m => `<option value="${m}">${fmtMonth(m)}</option>`).join('');
+
+    // 恢复选择
+    const saved = localStorage.getItem(CURRENT_MONTH_KEY);
+    if (saved && arr.includes(saved)) {
+      sel.value = saved;
+      currentMonth = saved;
+    } else {
+      currentMonth = arr[0];
+      sel.value = currentMonth;
+    }
+
+    sel.onchange = () => {
+      currentMonth = sel.value;
+      localStorage.setItem(CURRENT_MONTH_KEY, currentMonth);
+      render();
+    };
+  }
+
+  // ============== 渲染：抄表 ==============
+  function render() {
+    renderRecord();
+    renderHistory();
+    updateStats();
+  }
+
+  function renderRecord() {
+    const list = document.getElementById('floorList');
+    const floors = {};
+    APARTMENTS.forEach(a => {
+      if (!floors[a.floor]) floors[a.floor] = [];
+      floors[a.floor].push(a);
+    });
+
+    list.innerHTML = Object.keys(floors).sort().map(f => {
+      const rooms = floors[f];
+      const roomsHtml = rooms.map((a, idx) => {
+        const val = state.readings[a.num]?.[currentMonth];
+        const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
+        let usageHtml = '';
+        if (val != null && val !== '') {
+          if (prev != null && prev !== '' && !isNaN(val) && !isNaN(prev)) {
+            const u = (val - prev).toFixed(1);
+            const cls = u < 0 ? 'danger' : (parseFloat(u) > 200 ? 'warn' : 'has-value');
+            usageHtml = `<div class="room-usage ${cls}">用电 ${u} 度</div>`;
+          } else {
+            usageHtml = `<div class="room-usage first">首次抄表</div>`;
+          }
+        } else {
+          const lastM = getLastMonth(a.num);
+          if (lastM) {
+            const lastV = state.readings[a.num][lastM];
+            usageHtml = `<div class="room-usage">上次 ${fmtMonth(lastM).slice(5)}: ${lastV}</div>`;
+          } else {
+            usageHtml = `<div class="room-usage">未抄表</div>`;
+          }
+        }
+        return `
+          <div class="room" data-num="${a.num}">
+            <div class="room-num">${a.num}</div>
+            <div class="room-info">
+              <div class="room-last">${prev != null && prev !== '' ? '上月: ' + prev : '无上月数据'}</div>
+              ${usageHtml}
+            </div>
+            <input type="text" inputmode="decimal" data-num="${a.num}"
+                   value="${val != null ? val : ''}"
+                   placeholder="读数"
+                   oninput="onInput(this)"
+                   onfocus="this.select()">
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="floor-section" style="--floor-color: ${FLOOR_COLORS[f]}">
+          <div class="floor-header" onclick="toggleFloor(this)">
+            <span class="floor-tag">${f}F</span>
+            <span>${f} 层 · ${rooms.length} 户</span>
+            <span class="floor-stats" data-floor="${f}"></span>
+            <span class="arrow">▾</span>
+          </div>
+          <div class="rooms">${roomsHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    updateFloorStats();
+  }
+
+  function getLastMonth(num) {
+    const rm = state.readings[num];
+    if (!rm) return null;
+    const months = Object.keys(rm).sort();
+    return months.filter(m => m < currentMonth).pop() || null;
+  }
+
+  function updateFloorStats() {
+    const stats = {};
+    Object.values(state.readings).forEach(rm => {
+      if (rm[currentMonth] != null && rm[currentMonth] !== '') {
+        Object.keys(rm).forEach(m => {
+          if (m === currentMonth) {
+            const num = Object.keys(state.readings).find(n => state.readings[n][m] != null);
+          }
+        });
+      }
+    });
+
+    // 简单统计每层
+    APARTMENTS.forEach(a => {
+      const v = state.readings[a.num]?.[currentMonth];
+      if (v != null && v !== '') {
+        stats[a.floor] = (stats[a.floor] || 0) + 1;
+      }
+    });
+    document.querySelectorAll('[data-floor]').forEach(el => {
+      const f = el.dataset.floor;
+      el.textContent = stats[f] ? `${stats[f]} 户已抄` : '';
+    });
+  }
+
+  function updateStats() {
+    const filled = APARTMENTS.filter(a => {
+      const v = state.readings[a.num]?.[currentMonth];
+      return v != null && v !== '';
+    }).length;
+    document.getElementById('monthStats').textContent = `${filled} / ${APARTMENTS.length}`;
+  }
+
+  function toggleFloor(header) {
+    header.parentElement.classList.toggle('collapsed');
+  }
+
+  function onInput(input) {
+    const num = input.dataset.num;
+    let val = input.value.trim();
+    if (!state.readings[num]) state.readings[num] = {};
+    if (val === '') {
+      delete state.readings[num][currentMonth];
+    } else {
+      state.readings[num][currentMonth] = val;
+    }
+    save();
+    updateStats();
+    updateFloorStats();
+
+    // 实时更新显示的用电量
+    const room = input.closest('.room');
+    const prev = state.readings[num]?.[prevMonth(currentMonth)];
+    const usageEl = room.querySelector('.room-usage');
+    const lastEl = room.querySelector('.room-last');
+    if (lastEl) lastEl.textContent = (prev != null && prev !== '') ? '上月: ' + prev : '无上月数据';
+    if (val === '' || isNaN(val)) {
+      const lastM = getLastMonth(num);
+      usageEl.className = 'room-usage';
+      usageEl.textContent = lastM ? `上次 ${fmtMonth(lastM).slice(5)}: ${state.readings[num][lastM]}` : '未抄表';
+      room.classList.remove('saved');
+    } else if (prev != null && prev !== '' && !isNaN(prev)) {
+      const u = (parseFloat(val) - parseFloat(prev)).toFixed(1);
+      const cls = u < 0 ? 'danger' : (parseFloat(u) > 200 ? 'warn' : 'has-value');
+      usageEl.className = 'room-usage ' + cls;
+      usageEl.textContent = `用电 ${u} 度`;
+      room.classList.toggle('saved', parseFloat(u) >= 0);
+    } else {
+      usageEl.className = 'room-usage first';
+      usageEl.textContent = '首次抄表';
+      room.classList.add('saved');
+    }
+  }
+
+  // ============== 渲染：历史 ==============
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const monthSet = new Set();
+    Object.values(state.readings).forEach(rm => Object.keys(rm).forEach(m => monthSet.add(m)));
+    const months = [...monthSet].sort().reverse();
+
+    if (months.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="emoji">📋</div>暂无历史记录<br><span style="font-size:12px">先在"抄表"标签录入读数</span></div>`;
+      return;
+    }
+
+    list.innerHTML = months.map(m => {
+      const rows = APARTMENTS.map(a => {
+        const v = state.readings[a.num]?.[m];
+        const prev = state.readings[a.num]?.[prevMonth(m)];
+        let usage = '';
+        if (v != null && v !== '' && prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
+          usage = `<span class="history-row-usage">${(v - prev).toFixed(1)} 度</span>`;
+        }
+        return `
+          <div class="history-row">
+            <span class="history-row-num">${a.num}</span>
+            <span class="history-row-val">${v != null && v !== '' ? v : '—'}</span>
+            ${usage || '<span class="history-row-usage" style="color:var(--text-tertiary)">—</span>'}
+          </div>
+        `;
+      }).join('');
+
+      // 总用量
+      let total = 0, hasUsage = false;
+      APARTMENTS.forEach(a => {
+        const v = state.readings[a.num]?.[m];
+        const prev = state.readings[a.num]?.[prevMonth(m)];
+        if (v != null && prev != null && !isNaN(v) && !isNaN(prev)) {
+          total += parseFloat(v) - parseFloat(prev);
+          hasUsage = true;
+        }
+      });
+
+      return `
+        <div class="history-month">
+          <div class="history-month-header">
+            <span class="history-month-title">${fmtMonth(m)}</span>
+            <span class="history-month-total">${hasUsage ? '合计 ' + total.toFixed(1) + ' 度' : ''}</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ============== 导出 / 导入 ==============
+  function exportCSV() {
+    const months = new Set();
+    Object.values(state.readings).forEach(rm => Object.keys(rm).forEach(m => months.add(m)));
+    const sortedMonths = [...months].sort();
+
+    let csv = '\ufeff房号,' + sortedMonths.map(fmtMonth).join(',') + ',累计用量(度)\n';
+    APARTMENTS.forEach(a => {
+      const cells = sortedMonths.map(m => {
+        const v = state.readings[a.num]?.[m];
+        if (v == null || v === '') return '';
+        const prev = state.readings[a.num]?.[prevMonth(m)];
+        if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
+          return (parseFloat(v) - parseFloat(prev)).toFixed(1);
+        }
+        return v + '*';
+      });
+      const total = cells.filter(c => c && !c.endsWith('*')).reduce((s, c) => s + parseFloat(c), 0);
+      csv += `${a.num},${cells.join(',')},${total.toFixed(1)}\n`;
+    });
+    download(`抄表数据_${new Date().toISOString().slice(0,10)}.csv`, csv, 'text/csv;charset=utf-8');
+    showToast('CSV 已导出');
+  }
+
+  function exportJSON() {
+    const data = JSON.stringify(state, null, 2);
+    download(`抄表备份_${new Date().toISOString().slice(0,10)}.json`, data, 'application/json');
+    showToast('备份已导出');
+  }
+
+  function importJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const obj = JSON.parse(ev.target.result);
+        if (!obj.readings) throw new Error('格式错误');
+        showModal('确认恢复', `将覆盖当前所有数据，确定从备份恢复？`, [
+          { text: '取消', class: 'ghost', onclick: closeModal },
+          { text: '恢复', class: 'primary', onclick: () => {
+            state = obj;
+            save();
+            buildMonthOptions();
+            render();
+            closeModal();
+            showToast('已恢复');
+          }}
+        ]);
+      } catch (err) {
+        showToast('文件格式错误');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function download(name, content, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ============== Modal ==============
+  function showModal(title, body, buttons) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = body;
+    const footer = document.getElementById('modalFooter');
+    footer.innerHTML = '';
+    buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'btn ' + (b.class || '');
+      btn.textContent = b.text;
+      btn.onclick = b.onclick;
+      footer.appendChild(btn);
+    });
+    document.getElementById('modal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+  }
+
+  function addCustomMonth() {
+    const val = prompt('输入月份 (格式 YYYY-MM)，例如 2025-11');
+    if (!val) return;
+    if (!/^\d{4}-\d{2}$/.test(val)) { showToast('格式错误'); return; }
+    currentMonth = val;
+    localStorage.setItem(CURRENT_MONTH_KEY, currentMonth);
+    buildMonthOptions();
+    render();
+    switchTab('record');
+  }
+
+  function clearMonth() {
+    showModal('清空当月', `将清空 <b>${fmtMonth(currentMonth)}</b> 的所有读数，确定？`, [
+      { text: '取消', class: 'ghost', onclick: closeModal },
+      { text: '清空', class: 'danger', onclick: () => {
+        APARTMENTS.forEach(a => {
+          if (state.readings[a.num]) delete state.readings[a.num][currentMonth];
+        });
+        save();
+        render();
+        closeModal();
+        showToast('已清空');
+      }}
+    ]);
+  }
+
+  function clearAll() {
+    showModal('清空全部', '所有历史数据将被永久删除，无法恢复！', [
+      { text: '取消', class: 'ghost', onclick: closeModal },
+      { text: '确认清空', class: 'danger', onclick: () => {
+        state = { readings: {} };
+        save();
+        buildMonthOptions();
+        render();
+        closeModal();
+        showToast('已清空');
+      }}
+    ]);
+  }
+
+  // ============== Tabs ==============
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+  }
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.onclick = () => switchTab(t.dataset.tab);
+  });
+
+  // ============== 启动 ==============
+  load();
+  buildMonthOptions();
+  render();
+</script>
+
+</body>
+</html>
