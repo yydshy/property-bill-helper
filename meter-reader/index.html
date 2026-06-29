@@ -280,6 +280,7 @@
   .room-usage.warn { color: var(--warning); }
   .room-usage.danger { color: var(--danger); }
   .room-usage.first { color: var(--text-tertiary); font-weight: 500; }
+  .room-usage.rollover { color: #f59e0b; font-weight: 600; }
 
   .room input {
     width: 100px;
@@ -741,7 +742,12 @@
   }
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('保存失败:', e);
+      showToast('保存失败，存储空间可能已满');
+    }
   }
 
   // ============== 工具 ==============
@@ -751,17 +757,36 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
+  function prevReadingMonth(num, month) {
+    const rm = state.readings[num];
+    if (!rm) return null;
+    return Object.keys(rm)
+      .filter(m => m < month && rm[m] != null && rm[m] !== '')
+      .sort()
+      .pop() || null;
+  }
+
   function fmtMonth(ym) {
     const [y, m] = ym.split('-');
     return `${y}年${parseInt(m)}月`;
   }
+
+  const CONFIG = {
+    toastDuration: 1600,
+    usageWarningThreshold: 200,
+    floorColors: {
+      1: 'var(--floor-1)', 2: 'var(--floor-2)', 3: 'var(--floor-3)',
+      4: 'var(--floor-4)', 5: 'var(--floor-5)', 6: 'var(--floor-6)',
+    },
+    storageVersion: 1,
+  };
 
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 1600);
+    t._timer = setTimeout(() => t.classList.remove('show'), CONFIG.toastDuration);
   }
 
   // ============== 月份选择器 ==============
@@ -885,13 +910,17 @@
       const rooms = floors[f];
       const roomsHtml = rooms.map((a, idx) => {
         const val = state.readings[a.num]?.[currentMonth];
-        const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
+        const prevMonth = prevReadingMonth(a.num, currentMonth);
+        const prev = prevMonth ? state.readings[a.num][prevMonth] : null;
         let usageHtml = '';
         if (val != null && val !== '') {
           if (prev != null && prev !== '' && !isNaN(val) && !isNaN(prev)) {
-            const u = (val - prev).toFixed(1);
-            const cls = u < 0 ? 'danger' : (parseFloat(u) > 200 ? 'warn' : 'has-value');
-            usageHtml = `<div class="room-usage ${cls}">用电 ${u} 度</div>`;
+            const diff = parseFloat(val) - parseFloat(prev);
+            const isRollover = diff < 0;
+            const u = isRollover ? (10000 + diff).toFixed(1) : diff.toFixed(1);
+            const cls = isRollover ? 'rollover' : (parseFloat(u) > CONFIG.usageWarningThreshold ? 'warn' : 'has-value');
+            const label = isRollover ? '翻表' : '用电';
+            usageHtml = `<div class="room-usage ${cls}">${label} ${u} 度</div>`;
           } else {
             usageHtml = `<div class="room-usage first">首次抄表</div>`;
           }
@@ -908,7 +937,7 @@
           <div class="room" data-num="${a.num}">
             <div class="room-num">${a.num}</div>
             <div class="room-info">
-              <div class="room-last">${prev != null && prev !== '' ? '上月: ' + prev : '无上月数据'}</div>
+              <div class="room-last">${prev != null && prev !== '' ? `上次(${fmtMonth(prevMonth).slice(5)}): ${prev}` : '无历史数据'}</div>
               ${usageHtml}
             </div>
             <input type="text" inputmode="decimal" data-num="${a.num}"
@@ -922,7 +951,7 @@
       }).join('');
 
       return `
-        <div class="floor-section" style="--floor-color: ${FLOOR_COLORS[f]}">
+        <div class="floor-section" style="--floor-color: ${CONFIG.floorColors[f]}">
           <div class="floor-header" onclick="toggleFloor(this)">
             <span class="floor-tag">${f}F</span>
             <span>${f} 层 · ${rooms.length} 户</span>
@@ -946,17 +975,6 @@
 
   function updateFloorStats() {
     const stats = {};
-    Object.values(state.readings).forEach(rm => {
-      if (rm[currentMonth] != null && rm[currentMonth] !== '') {
-        Object.keys(rm).forEach(m => {
-          if (m === currentMonth) {
-            const num = Object.keys(state.readings).find(n => state.readings[n][m] != null);
-          }
-        });
-      }
-    });
-
-    // 简单统计每层
     APARTMENTS.forEach(a => {
       const v = state.readings[a.num]?.[currentMonth];
       if (v != null && v !== '') {
@@ -996,21 +1014,25 @@
 
     // 实时更新显示的用电量
     const room = input.closest('.room');
-    const prev = state.readings[num]?.[prevMonth(currentMonth)];
+    const prevMonthVal = prevReadingMonth(num, currentMonth);
+    const prev = prevMonthVal ? state.readings[num][prevMonthVal] : null;
     const usageEl = room.querySelector('.room-usage');
     const lastEl = room.querySelector('.room-last');
-    if (lastEl) lastEl.textContent = (prev != null && prev !== '') ? '上月: ' + prev : '无上月数据';
+    if (lastEl) lastEl.textContent = (prev != null && prev !== '') ? `上次(${fmtMonth(prevMonthVal).slice(5)}): ${prev}` : '无历史数据';
     if (val === '' || isNaN(val)) {
       const lastM = getLastMonth(num);
       usageEl.className = 'room-usage';
       usageEl.textContent = lastM ? `上次 ${fmtMonth(lastM).slice(5)}: ${state.readings[num][lastM]}` : '未抄表';
       room.classList.remove('saved');
     } else if (prev != null && prev !== '' && !isNaN(prev)) {
-      const u = (parseFloat(val) - parseFloat(prev)).toFixed(1);
-      const cls = u < 0 ? 'danger' : (parseFloat(u) > 200 ? 'warn' : 'has-value');
+      const diff = parseFloat(val) - parseFloat(prev);
+      const isRollover = diff < 0;
+      const u = isRollover ? (10000 + diff).toFixed(1) : diff.toFixed(1);
+      const cls = isRollover ? 'rollover' : (parseFloat(u) > CONFIG.usageWarningThreshold ? 'warn' : 'has-value');
+      const label = isRollover ? '翻表' : '用电';
       usageEl.className = 'room-usage ' + cls;
-      usageEl.textContent = `用电 ${u} 度`;
-      room.classList.toggle('saved', parseFloat(u) >= 0);
+      usageEl.textContent = `${label} ${u} 度`;
+      room.classList.toggle('saved', true);
     } else {
       usageEl.className = 'room-usage first';
       usageEl.textContent = '首次抄表';
@@ -1056,10 +1078,15 @@
     list.innerHTML = months.map(m => {
       const rows = APARTMENTS.map(a => {
         const v = state.readings[a.num]?.[m];
-        const prev = state.readings[a.num]?.[prevMonth(m)];
+        const prevMonthVal = prevReadingMonth(a.num, m);
+        const prev = prevMonthVal ? state.readings[a.num][prevMonthVal] : null;
         let usage = '';
         if (v != null && v !== '' && prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
-          usage = `<span class="history-row-usage">${(v - prev).toFixed(1)} 度</span>`;
+          const diff = parseFloat(v) - parseFloat(prev);
+          const isRollover = diff < 0;
+          const u = isRollover ? (10000 + diff).toFixed(1) : diff.toFixed(1);
+          const cls = isRollover ? 'style="color:#f59e0b"' : '';
+          usage = `<span class="history-row-usage" ${cls}>${u} 度</span>`;
         }
         return `
           <div class="history-row">
@@ -1074,9 +1101,11 @@
       let total = 0, hasUsage = false;
       APARTMENTS.forEach(a => {
         const v = state.readings[a.num]?.[m];
-        const prev = state.readings[a.num]?.[prevMonth(m)];
+        const prevMonthVal = prevReadingMonth(a.num, m);
+        const prev = prevMonthVal ? state.readings[a.num][prevMonthVal] : null;
         if (v != null && prev != null && !isNaN(v) && !isNaN(prev)) {
-          total += parseFloat(v) - parseFloat(prev);
+          const diff = parseFloat(v) - parseFloat(prev);
+          total += diff < 0 ? (10000 + diff) : diff;
           hasUsage = true;
         }
       });
@@ -1115,63 +1144,77 @@
 
     filled.forEach(a => {
       const v = state.readings[a.num][currentMonth];
-      const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
+      const prevMonthVal = prevReadingMonth(a.num, currentMonth);
+      const prev = prevMonthVal ? state.readings[a.num][prevMonthVal] : null;
       shareData.readings[a.num] = { current: v, prev: prev || null };
       if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
-        totalUsage += parseFloat(v) - parseFloat(prev);
+        const diff = parseFloat(v) - parseFloat(prev);
+        totalUsage += diff < 0 ? (10000 + diff) : diff;
       }
     });
     shareData.total = totalUsage.toFixed(1);
 
-    // 压缩并编码到URL
+    // 使用现代编码方式
     const jsonStr = JSON.stringify(shareData);
-    const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-    const shareUrl = location.href.split('?')[0] + '?d=' + encoded;
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const encoded = reader.result.split(',')[1];
+      const shareUrl = location.href.split('?')[0] + '?d=' + encoded;
 
-    // 也生成文本版本
-    let text = `${fmtMonth(currentMonth)} 抄表数据\n`;
-    text += '='.repeat(20) + '\n\n';
-    filled.forEach(a => {
-      const v = state.readings[a.num][currentMonth];
-      const prev = state.readings[a.num]?.[prevMonth(currentMonth)];
-      let usage = '-';
-      if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
-        usage = (parseFloat(v) - parseFloat(prev)).toFixed(1);
-      }
-      text += `${a.num}: ${usage} 度\n`;
-    });
-    text += '\n合计: ' + totalUsage.toFixed(1) + ' 度\n';
-    text += '时间: ' + new Date().toLocaleString('zh-CN');
+      // 也生成文本版本
+      let text = `${fmtMonth(currentMonth)} 抄表数据\n`;
+      text += '='.repeat(20) + '\n\n';
+      filled.forEach(a => {
+        const v = state.readings[a.num][currentMonth];
+        const prevMonthVal = prevReadingMonth(a.num, currentMonth);
+        const prev = prevMonthVal ? state.readings[a.num][prevMonthVal] : null;
+        let usage = '-';
+        if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
+          const diff = parseFloat(v) - parseFloat(prev);
+          usage = (diff < 0 ? (10000 + diff) : diff).toFixed(1);
+        }
+        text += `${a.num}: ${usage} 度\n`;
+      });
+      text += '\n合计: ' + totalUsage.toFixed(1) + ' 度\n';
+      text += '时间: ' + new Date().toLocaleString('zh-CN');
 
-    const body = `
-      <div style="margin-bottom:16px;padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
-        <div style="font-weight:600;margin-bottom:8px;">📱 发链接给老人查看</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">老人点开链接即可看到抄表结果，无需任何操作</div>
-        <textarea id="shareUrl" style="width:100%;height:60px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${shareUrl}</textarea>
-      </div>
-      <div style="padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
-        <div style="font-weight:600;margin-bottom:8px;">📝 或复制文本发送</div>
-        <textarea id="shareText" style="width:100%;height:200px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${text}</textarea>
-      </div>
-    `;
+      const body = `
+        <div style="margin-bottom:16px;padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
+          <div style="font-weight:600;margin-bottom:8px;">📱 发链接给老人查看</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">老人点开链接即可看到抄表结果，无需任何操作</div>
+          <textarea id="shareUrl" style="width:100%;height:60px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${shareUrl}</textarea>
+        </div>
+        <div style="padding:16px;background:#fafafa;border-radius:10px;font-size:14px;">
+          <div style="font-weight:600;margin-bottom:8px;">📝 或复制文本发送</div>
+          <textarea id="shareText" style="width:100%;height:200px;padding:8px;font-size:13px;border:1px solid var(--border);border-radius:8px;resize:none;background:#fff;font-family:monospace;" readonly>${text}</textarea>
+        </div>
+      `;
 
-    showModal('分享当月数据', body, [
-      { text: '复制链接', class: 'primary', onclick: () => {
-        const ta = document.getElementById('shareUrl');
-        ta.select();
-        document.execCommand('copy');
-        showToast('链接已复制');
-        closeModal();
-      }},
-      { text: '复制文本', class: 'ghost', onclick: () => {
-        const ta = document.getElementById('shareText');
-        ta.select();
-        document.execCommand('copy');
-        showToast('文本已复制');
-        closeModal();
-      }},
-      { text: '关闭', class: 'ghost', onclick: closeModal }
-    ]);
+      showModal('分享当月数据', body, [
+        { text: '复制链接', class: 'primary', onclick: () => copyToClipboard(shareUrl) },
+        { text: '复制文本', class: 'ghost', onclick: () => copyToClipboard(text) },
+        { text: '关闭', class: 'ghost', onclick: closeModal }
+      ]);
+    };
+    reader.readAsDataURL(blob);
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('已复制到剪贴板');
+      closeModal();
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('已复制到剪贴板');
+      closeModal();
+    }
   }
 
   function toggleElderMode() {
@@ -1186,19 +1229,26 @@
     Object.values(state.readings).forEach(rm => Object.keys(rm).forEach(m => months.add(m)));
     const sortedMonths = [...months].sort();
 
-    let csv = '\ufeff房号,' + sortedMonths.map(fmtMonth).join(',') + ',累计用量(度)\n';
+    const csvCell = s => {
+      s = String(s ?? '');
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    let csv = '\ufeff房号,' + sortedMonths.map(fmtMonth).join(',') + ',合计用电(度)\n';
     APARTMENTS.forEach(a => {
       const cells = sortedMonths.map(m => {
         const v = state.readings[a.num]?.[m];
         if (v == null || v === '') return '';
-        const prev = state.readings[a.num]?.[prevMonth(m)];
+        const prevMonthVal = prevReadingMonth(a.num, m);
+        const prev = prevMonthVal ? state.readings[a.num][prevMonthVal] : null;
         if (prev != null && prev !== '' && !isNaN(v) && !isNaN(prev)) {
-          return (parseFloat(v) - parseFloat(prev)).toFixed(1);
+          const diff = parseFloat(v) - parseFloat(prev);
+          return (diff < 0 ? (10000 + diff) : diff).toFixed(1);
         }
         return v + '*';
       });
       const total = cells.filter(c => c && !c.endsWith('*')).reduce((s, c) => s + parseFloat(c), 0);
-      csv += `${a.num},${cells.join(',')},${total.toFixed(1)}\n`;
+      csv += `${csvCell(a.num)},${cells.map(csvCell).join(',')},${total.toFixed(1)}\n`;
     });
     download(`抄表数据_${new Date().toISOString().slice(0,10)}.csv`, csv, 'text/csv;charset=utf-8');
     showToast('CSV 已导出');
@@ -1217,16 +1267,19 @@
     reader.onload = (ev) => {
       try {
         const obj = JSON.parse(ev.target.result);
-        if (!obj.readings) throw new Error('格式错误');
+        if (!validateBackup(obj)) {
+          throw new Error('备份文件格式不正确');
+        }
         showModal('确认恢复', `将覆盖当前所有数据，确定从备份恢复？`, [
           { text: '取消', class: 'ghost', onclick: closeModal },
           { text: '恢复', class: 'primary', onclick: () => {
+            migrateData(obj);
             state = obj;
             save();
             buildMonthOptions();
             render();
             closeModal();
-            showToast('已恢复');
+            showToast('已恢复，请及时导出备份');
           }}
         ]);
       } catch (err) {
@@ -1235,6 +1288,25 @@
     };
     reader.readAsText(file);
     e.target.value = '';
+  }
+
+  function validateBackup(obj) {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!obj.readings || typeof obj.readings !== 'object') return false;
+    for (const [num, months] of Object.entries(obj.readings)) {
+      if (typeof months !== 'object') return false;
+      for (const [month, value] of Object.entries(months)) {
+        if (typeof value !== 'string') return false;
+        if (!/^\d*\.?\d*$/.test(value)) return false;
+      }
+    }
+    return true;
+  }
+
+  function migrateData(obj) {
+    if (!obj.version) {
+      obj.version = CONFIG.storageVersion;
+    }
   }
 
   function download(name, content, type) {
@@ -1322,7 +1394,7 @@
     const d = params.get('d');
     if (d) {
       try {
-        const jsonStr = decodeURIComponent(escape(atob(d)));
+        const jsonStr = decodeURIComponent(atob(d));
         const data = JSON.parse(jsonStr);
         if (data.month && data.readings) {
           renderViewMode(data);
