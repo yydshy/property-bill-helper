@@ -1116,7 +1116,7 @@
 
     // 压缩并编码到URL
     const jsonStr = JSON.stringify(shareData);
-    const encoded = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+    const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
     const shareUrl = location.href.split('?')[0] + '?d=' + encoded;
 
     // 也生成文本版本
@@ -1313,7 +1313,7 @@
     const d = params.get('d');
     if (d) {
       try {
-        const jsonStr = decodeURIComponent(atob(d).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        const jsonStr = decodeURIComponent(escape(atob(d)));
         const data = JSON.parse(jsonStr);
         if (data.month && data.readings) {
           renderViewMode(data);
